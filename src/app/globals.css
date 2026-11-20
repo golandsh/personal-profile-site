@@ -1,0 +1,406 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: dark;
+
+  --surface-obsidian: #07090d;
+  --surface-slate: #0d121a;
+  --surface-elevated: #121926;
+  --surface-hairline: rgba(148, 163, 184, 0.14);
+  --surface-hairline-strong: rgba(56, 232, 255, 0.34);
+
+  --ink-primary: #f4f7fb;
+  --ink-secondary: #a7b4c8;
+  --ink-muted: #76859b;
+
+  --accent-cyan: #22d3ee;
+  --accent-volt: #b8ff3b;
+  --accent-cyan-soft: rgba(34, 211, 238, 0.12);
+
+  --scrollbar-track: #0a0e14;
+  --scrollbar-thumb: #2b374a;
+
+  accent-color: var(--accent-cyan);
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+@supports not (scrollbar-color: auto) {
+  :root {
+    scrollbar-width: auto;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
+  }
+}
+
+html {
+  background-color: var(--surface-obsidian);
+  color: var(--ink-primary);
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  min-height: 100dvh;
+  background-color: var(--surface-obsidian);
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+::selection {
+  background-color: rgba(34, 211, 238, 0.28);
+  color: #ffffff;
+}
+
+:where(a:any-link, button, [tabindex="-1"]):focus-visible {
+  outline: 3px solid var(--accent-cyan);
+  outline-offset: 3px;
+}
+
+/* Visually hidden utility keeping focusable skip links accessible */
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+.skip-link:focus-visible {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  padding: 0.75rem 1.25rem;
+  background: var(--accent-cyan);
+  color: #051017;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: 0.375rem;
+  text-decoration: none;
+}
+
+/* Architectural obsidian coordinate grid + controlled atmospheric glow */
+.architectural-backdrop {
+  background-color: var(--surface-obsidian);
+  background-image:
+    radial-gradient(
+      900px circle at 82% -8%,
+      rgba(34, 211, 238, 0.12),
+      transparent 55%
+    ),
+    radial-gradient(
+      640px circle at 12% 18%,
+      rgba(184, 255, 59, 0.05),
+      transparent 52%
+    ),
+    linear-gradient(to right, rgba(148, 163, 184, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
+  background-size: auto, auto, 72px 72px, 72px 72px;
+  background-position: center top;
+}
+
+/* Scroll Progress Indicator (Progressive Enhancement via CSS Scroll-Driven Animations) */
+.scroll-progress-bar {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: 2px;
+  z-index: 60;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    var(--accent-cyan) 0%,
+    #38bdf8 65%,
+    var(--accent-volt) 100%
+  );
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    @keyframes grow-scroll-progress {
+      from {
+        transform: scaleX(0);
+      }
+      to {
+        transform: scaleX(1);
+      }
+    }
+
+    .scroll-progress-bar {
+      animation: grow-scroll-progress auto linear;
+      animation-timeline: scroll(root block);
+    }
+  }
+}
+
+/* Progressive Enhancement Scroll Reveal (Static content always visible by default) */
+@media (prefers-reduced-motion: no-preference) {
+  @supports ((animation-timeline: view()) and (animation-range: entry)) {
+    @keyframes dossier-enter {
+      from {
+        opacity: 0.25;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .reveal-on-scroll {
+      animation: dossier-enter auto linear both;
+      animation-timeline: view(block);
+      animation-range: entry 0% entry 28%;
+    }
+  }
+}
+
+/* Container-aware Dossier Cards */
+.dossier-card {
+  container-type: inline-size;
+  background: linear-gradient(
+    180deg,
+    rgba(19, 27, 42, 0.9) 0%,
+    rgba(10, 14, 22, 0.96) 100%
+  );
+  border: 1px solid var(--surface-hairline);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 220ms ease;
+}
+
+.dossier-card:hover {
+  border-color: var(--surface-hairline-strong);
+  box-shadow:
+    inset 0 1px 0 rgba(56, 232, 255, 0.2),
+    0 20px 52px -24px rgba(34, 211, 238, 0.26);
+}
+
+.dossier-card-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@container (min-width: 30rem) {
+  .dossier-card-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 1rem;
+  }
+}
+
+/* Precision architectural opposing corner reticles */
+.corner-accent {
+  position: relative;
+}
+
+.corner-accent::before,
+.corner-accent::after {
+  content: "";
+  position: absolute;
+  inline-size: 14px;
+  block-size: 14px;
+  pointer-events: none;
+}
+
+.corner-accent::before {
+  inset-block-start: -1px;
+  inset-inline-start: -1px;
+  border-block-start: 2px solid var(--accent-cyan);
+  border-inline-start: 2px solid var(--accent-cyan);
+}
+
+.corner-accent::after {
+  inset-block-end: -1px;
+  inset-inline-end: -1px;
+  border-block-end: 1px solid rgba(184, 255, 59, 0.45);
+  border-inline-end: 1px solid rgba(184, 255, 59, 0.45);
+}
+
+/* Native top-layer Architecture Brief <dialog> */
+.brief-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  max-inline-size: min(40rem, calc(100dvw - 2rem));
+  inline-size: 100%;
+  max-block-size: calc(100dvh - 3rem);
+  overflow: auto;
+  padding: 0;
+  color: var(--ink-primary);
+  background: linear-gradient(180deg, #111827 0%, #090d14 100%);
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  box-shadow: 0 32px 96px -24px rgba(0, 0, 0, 0.85);
+}
+
+.brief-dialog::backdrop {
+  background: rgba(3, 6, 11, 0.78);
+  backdrop-filter: blur(6px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .brief-dialog {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+    transition:
+      opacity 180ms ease-out,
+      transform 180ms ease-out,
+      display 180ms,
+      overlay 180ms;
+    transition-behavior: allow-discrete;
+  }
+
+  .brief-dialog[open] {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  @starting-style {
+    .brief-dialog[open] {
+      opacity: 0;
+      transform: translateY(10px) scale(0.985);
+    }
+  }
+}
+
+/* Subtle status pulse respecting reduced motion */
+.status-dot {
+  display: inline-block;
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: 9999px;
+  background-color: var(--accent-volt);
+  box-shadow: 0 0 12px rgba(184, 255, 59, 0.75);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes signal-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.55;
+      transform: scale(0.86);
+    }
+  }
+
+  .status-dot {
+    animation: signal-pulse 2.6s ease-in-out infinite;
+  }
+}
+
+/* Digital Twin Panel Entry / Exit Transition */
+.twin-panel {
+  opacity: 1;
+  translate: 0 0;
+  transition:
+    display,
+    opacity ease-out,
+    translate ease-out;
+  transition-duration: 0.24s;
+  transition-behavior: allow-discrete;
+}
+
+@starting-style {
+  .twin-panel {
+    opacity: 0;
+    translate: 0 14px;
+  }
+}
+
+.twin-panel[hidden] {
+  display: none;
+  opacity: 0;
+  translate: 0 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .twin-panel {
+    translate: none;
+    transition-duration: 0.1s;
+  }
+
+  @starting-style {
+    .twin-panel {
+      translate: none;
+    }
+  }
+
+  .twin-panel[hidden] {
+    translate: none;
+  }
+}
+
+/* Auto-sizing chat textarea with progressive fallback */
+.twin-textarea {
+  field-sizing: content;
+  height: auto;
+  width: 100%;
+  min-block-size: 2.75rem;
+  max-block-size: 8lh;
+}
+
+/* Typing telemetry bars */
+.twin-typing-bar {
+  display: inline-block;
+  inline-size: 3px;
+  block-size: 12px;
+  background-color: var(--accent-cyan);
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes twin-bar-pulse {
+    0%,
+    100% {
+      transform: scaleY(0.45);
+      opacity: 0.45;
+    }
+    50% {
+      transform: scaleY(1);
+      opacity: 1;
+    }
+  }
+
+  .twin-typing-bar {
+    animation: twin-bar-pulse 0.9s ease-in-out infinite;
+  }
+}

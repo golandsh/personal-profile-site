@@ -322,7 +322,7 @@ export function DigitalTwinChat({
                 <span className="status-dot" aria-hidden="true" />
               </div>
               <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-slate-400">
-                OpenRouter AI · Verified Career Dossier
+                AI Concierge · Verified Career Dossier
               </p>
             </div>
           </div>

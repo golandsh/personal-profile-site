@@ -4,7 +4,7 @@ import { buildDigitalTwinSystemPrompt } from "@/lib/digital-twin-prompt";
 import type { ChatMessageInput } from "@/lib/digital-twin-schema";
 import { MissingEnvError, getN8nEnv } from "@/lib/env";
 
-export const N8N_TIMEOUT_MS = 25_000;
+export const N8N_TIMEOUT_MS = 35_000;
 export const N8N_DEFAULT_MODEL_LABEL = "ollama-n8n";
 
 export type N8nErrorCode =

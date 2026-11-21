@@ -1,12 +1,14 @@
 import "server-only";
 import { z } from "zod";
 import {
+  MAX_ASSISTANT_MESSAGE_LENGTH,
   MAX_CONVERSATION_MESSAGES,
   MAX_MESSAGE_LENGTH,
   MAX_TOTAL_CONVERSATION_CHARS,
 } from "@/lib/digital-twin-types";
 
 export {
+  MAX_ASSISTANT_MESSAGE_LENGTH,
   MAX_CONVERSATION_MESSAGES,
   MAX_MESSAGE_LENGTH,
   MAX_REQUEST_BODY_BYTES,
@@ -22,17 +24,30 @@ export {
 
 export const ChatRoleSchema = z.enum(["user", "assistant"]);
 
-export const ChatMessageInputSchema = z.object({
-  role: ChatRoleSchema,
-  content: z
-    .string()
-    .trim()
-    .min(1, "Message cannot be empty")
-    .max(
-      MAX_MESSAGE_LENGTH,
-      `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`,
-    ),
-});
+export const ChatMessageInputSchema = z.discriminatedUnion("role", [
+  z.object({
+    role: z.literal("user"),
+    content: z
+      .string()
+      .trim()
+      .min(1, "Message cannot be empty")
+      .max(
+        MAX_MESSAGE_LENGTH,
+        `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`,
+      ),
+  }),
+  z.object({
+    role: z.literal("assistant"),
+    content: z
+      .string()
+      .trim()
+      .min(1, "Message cannot be empty")
+      .max(
+        MAX_ASSISTANT_MESSAGE_LENGTH,
+        `Assistant message cannot exceed ${MAX_ASSISTANT_MESSAGE_LENGTH} characters`,
+      ),
+  }),
+]);
 
 export const DigitalTwinRequestSchema = z
   .object({

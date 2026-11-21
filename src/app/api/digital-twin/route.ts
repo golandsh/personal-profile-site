@@ -1,16 +1,23 @@
 import { NextResponse } from "next/server";
-import { digitalTwinRateLimiter } from "@/lib/digital-twin-rate-limit";
+import {
+  digitalTwinConcurrencyLimiter,
+  digitalTwinGlobalLimiter,
+  digitalTwinRateLimiter,
+} from "@/lib/digital-twin-rate-limit";
 import {
   DigitalTwinRequestSchema,
   MAX_REQUEST_BODY_BYTES,
   type DigitalTwinError,
   type DigitalTwinSuccess,
 } from "@/lib/digital-twin-schema";
+import { getActiveLlmProvider } from "@/lib/env";
+import { N8nError, requestN8nDigitalTwinReply } from "@/lib/n8n";
 import { OpenRouterError, requestDigitalTwinReply } from "@/lib/openrouter";
 import { extractClientKey } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 function jsonError(
   error: string,
@@ -40,6 +47,25 @@ function mapOpenRouterError(
       );
     case "rate-limited":
       return jsonError(error.message, 429, { "Retry-After": "10" });
+    case "timeout":
+      return jsonError(error.message, 504);
+    case "invalid-response":
+    case "upstream-error":
+      return jsonError(error.message, 502);
+    default: {
+      const exhaustive: never = error.code;
+      return jsonError(`Unexpected error: ${String(exhaustive)}`, 502);
+    }
+  }
+}
+
+function mapN8nError(error: N8nError): NextResponse<DigitalTwinError> {
+  switch (error.code) {
+    case "missing-config":
+    case "auth-error":
+      return jsonError(error.message, 503);
+    case "rate-limited":
+      return jsonError(error.message, 429, { "Retry-After": "5" });
     case "timeout":
       return jsonError(error.message, 504);
     case "invalid-response":
@@ -98,12 +124,21 @@ export async function POST(
   }
 
   const clientKey = extractClientKey(request.headers);
-  const limit = digitalTwinRateLimiter.check(clientKey);
-  if (!limit.allowed) {
+  const ipLimit = digitalTwinRateLimiter.check(clientKey);
+  if (!ipLimit.allowed) {
     return jsonError(
       "Too many messages sent. Please wait a moment before asking again.",
       429,
-      { "Retry-After": String(limit.retryAfterSeconds) },
+      { "Retry-After": String(ipLimit.retryAfterSeconds) },
+    );
+  }
+
+  const globalLimit = digitalTwinGlobalLimiter.check("global");
+  if (!globalLimit.allowed) {
+    return jsonError(
+      "Digital Twin is experiencing high demand. Please retry shortly.",
+      429,
+      { "Retry-After": String(globalLimit.retryAfterSeconds) },
     );
   }
 
@@ -149,8 +184,22 @@ export async function POST(
     );
   }
 
+  const releaseConcurrencySlot = digitalTwinConcurrencyLimiter.tryAcquire();
+  if (!releaseConcurrencySlot) {
+    return jsonError(
+      "Digital Twin is currently handling other requests. Please retry in a few seconds.",
+      429,
+      { "Retry-After": "5" },
+    );
+  }
+
   try {
-    const result = await requestDigitalTwinReply(validated.data.messages);
+    const provider = getActiveLlmProvider();
+    const result =
+      provider === "n8n"
+        ? await requestN8nDigitalTwinReply(validated.data.messages)
+        : await requestDigitalTwinReply(validated.data.messages);
+
     return NextResponse.json(
       {
         reply: result.reply,
@@ -164,6 +213,9 @@ export async function POST(
       },
     );
   } catch (error: unknown) {
+    if (error instanceof N8nError) {
+      return mapN8nError(error);
+    }
     if (error instanceof OpenRouterError) {
       return mapOpenRouterError(error);
     }
@@ -171,5 +223,7 @@ export async function POST(
       "Unable to complete your request right now. Please try again.",
       502,
     );
+  } finally {
+    releaseConcurrencySlot();
   }
 }

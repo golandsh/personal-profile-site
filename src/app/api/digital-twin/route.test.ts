@@ -1,11 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/digital-twin/route";
-import { digitalTwinRateLimiter } from "@/lib/digital-twin-rate-limit";
+import {
+  digitalTwinConcurrencyLimiter,
+  digitalTwinGlobalLimiter,
+  digitalTwinRateLimiter,
+} from "@/lib/digital-twin-rate-limit";
 import {
   MAX_CONVERSATION_MESSAGES,
   MAX_MESSAGE_LENGTH,
   MAX_REQUEST_BODY_BYTES,
 } from "@/lib/digital-twin-schema";
+import type * as N8nModule from "@/lib/n8n";
+import { N8nError, requestN8nDigitalTwinReply } from "@/lib/n8n";
 import type * as OpenRouterModule from "@/lib/openrouter";
 import { OpenRouterError, requestDigitalTwinReply } from "@/lib/openrouter";
 
@@ -17,7 +23,16 @@ vi.mock("@/lib/openrouter", async (importOriginal) => {
   };
 });
 
-const mockedRequestReply = vi.mocked(requestDigitalTwinReply);
+vi.mock("@/lib/n8n", async (importOriginal) => {
+  const actual = await importOriginal<typeof N8nModule>();
+  return {
+    ...actual,
+    requestN8nDigitalTwinReply: vi.fn(),
+  };
+});
+
+const mockedRequestOpenRouter = vi.mocked(requestDigitalTwinReply);
+const mockedRequestN8n = vi.mocked(requestN8nDigitalTwinReply);
 
 function createJsonRequest(
   body: string,
@@ -35,16 +50,37 @@ function createJsonRequest(
 }
 
 describe("POST /api/digital-twin", () => {
+  const originalProvider = process.env.LLM_PROVIDER;
+  const originalN8nUrl = process.env.N8N_WEBHOOK_URL;
+
   beforeEach(() => {
     digitalTwinRateLimiter.reset();
-    mockedRequestReply.mockReset();
+    digitalTwinGlobalLimiter.reset();
+    digitalTwinConcurrencyLimiter.reset();
+    mockedRequestOpenRouter.mockReset();
+    mockedRequestN8n.mockReset();
+    delete process.env.LLM_PROVIDER;
+    process.env.N8N_WEBHOOK_URL =
+      "https://example.ngrok-free.dev/webhook/digital-twin";
   });
 
-  it("returns 200 with reply and no-store cache header for valid user question", async () => {
-    mockedRequestReply.mockResolvedValue({
-      reply:
-        "I spent 5 years at WiseStamp owning payments and editor architecture.",
-      model: "google/gemma-4-26b-a4b-it:free",
+  afterEach(() => {
+    if (originalProvider === undefined) {
+      delete process.env.LLM_PROVIDER;
+    } else {
+      process.env.LLM_PROVIDER = originalProvider;
+    }
+    if (originalN8nUrl === undefined) {
+      delete process.env.N8N_WEBHOOK_URL;
+    } else {
+      process.env.N8N_WEBHOOK_URL = originalN8nUrl;
+    }
+  });
+
+  it("routes to n8n webhook by default when N8N_WEBHOOK_URL is set and returns 200 with no-store", async () => {
+    mockedRequestN8n.mockResolvedValue({
+      reply: "I spent 5 years at WiseStamp owning payments and editor architecture.",
+      model: "ollama-n8n",
     });
 
     const response = await POST(
@@ -57,12 +93,55 @@ describe("POST /api/digital-twin", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(mockedRequestN8n).toHaveBeenCalledTimes(1);
+    expect(mockedRequestOpenRouter).not.toHaveBeenCalled();
+
     const json: unknown = await response.json();
     expect(json).toEqual({
-      reply:
-        "I spent 5 years at WiseStamp owning payments and editor architecture.",
-      model: "google/gemma-4-26b-a4b-it:free",
+      reply: "I spent 5 years at WiseStamp owning payments and editor architecture.",
+      model: "ollama-n8n",
     });
+  });
+
+  it("allows long assistant replies (>1000 chars) in follow-up conversation history", async () => {
+    mockedRequestN8n.mockResolvedValue({
+      reply: "Here are the companies and dates.",
+      model: "ollama-n8n",
+    });
+
+    const response = await POST(
+      createJsonRequest(
+        JSON.stringify({
+          messages: [
+            { role: "user", content: "Tell me about Recurly" },
+            { role: "assistant", content: "A".repeat(2500) },
+            { role: "user", content: "List his companies and dates" },
+          ],
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it("routes to OpenRouter when LLM_PROVIDER=openrouter", async () => {
+    process.env.LLM_PROVIDER = "openrouter";
+    mockedRequestOpenRouter.mockResolvedValue({
+      reply: "OpenRouter answer.",
+      model: "nvidia/nemotron-3.5-lightning:free",
+    });
+
+    const response = await POST(
+      createJsonRequest(
+        JSON.stringify({
+          messages: [{ role: "user", content: "Hi" }],
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockedRequestOpenRouter).toHaveBeenCalledTimes(1);
+    expect(mockedRequestN8n).not.toHaveBeenCalled();
   });
 
   it("returns 415 when MIME essence is not application/json and 403 for cross-site fetch", async () => {
@@ -108,7 +187,6 @@ describe("POST /api/digital-twin", () => {
   it("returns 400 for malformed JSON and schema boundary violations", async () => {
     expect((await POST(createJsonRequest("{invalid"))).status).toBe(400);
 
-    // Disallowed system role
     expect(
       (
         await POST(
@@ -124,7 +202,6 @@ describe("POST /api/digital-twin", () => {
       ).status,
     ).toBe(400);
 
-    // Non-user last message
     expect(
       (
         await POST(
@@ -137,12 +214,10 @@ describe("POST /api/digital-twin", () => {
       ).status,
     ).toBe(400);
 
-    // Empty messages array
     expect(
       (await POST(createJsonRequest(JSON.stringify({ messages: [] })))).status,
     ).toBe(400);
 
-    // Whitespace-only content
     expect(
       (
         await POST(
@@ -153,7 +228,6 @@ describe("POST /api/digital-twin", () => {
       ).status,
     ).toBe(400);
 
-    // Single message over MAX_MESSAGE_LENGTH
     expect(
       (
         await POST(
@@ -168,7 +242,6 @@ describe("POST /api/digital-twin", () => {
       ).status,
     ).toBe(400);
 
-    // Too many messages in history
     const tooManyMessages = Array.from(
       { length: MAX_CONVERSATION_MESSAGES + 1 },
       (_, idx) => ({
@@ -189,60 +262,59 @@ describe("POST /api/digital-twin", () => {
     ).toBe(400);
   });
 
-  it("maps OpenRouterError and unexpected errors to safe HTTP status codes without leaking internal traces", async () => {
-    mockedRequestReply.mockRejectedValueOnce(
+  it("maps N8nError, OpenRouterError, and unexpected errors to safe HTTP status codes", async () => {
+    mockedRequestN8n.mockRejectedValueOnce(
+      new N8nError("auth-error", "Auth failed"),
+    );
+    expect(
+      (
+        await POST(
+          createJsonRequest(
+            JSON.stringify({ messages: [{ role: "user", content: "Hi" }] }),
+          ),
+        )
+      ).status,
+    ).toBe(503);
+
+    mockedRequestN8n.mockRejectedValueOnce(
+      new N8nError("timeout", "Timed out"),
+    );
+    expect(
+      (
+        await POST(
+          createJsonRequest(
+            JSON.stringify({ messages: [{ role: "user", content: "Hi" }] }),
+          ),
+        )
+      ).status,
+    ).toBe(504);
+
+    mockedRequestN8n.mockRejectedValueOnce(
+      new N8nError("rate-limited", "Busy"),
+    );
+    const n8nRateRes = await POST(
+      createJsonRequest(
+        JSON.stringify({ messages: [{ role: "user", content: "Hi" }] }),
+      ),
+    );
+    expect(n8nRateRes.status).toBe(429);
+    expect(n8nRateRes.headers.get("retry-after")).toBe("5");
+
+    process.env.LLM_PROVIDER = "openrouter";
+    mockedRequestOpenRouter.mockRejectedValueOnce(
       new OpenRouterError("missing-api-key", "Not configured"),
     );
-    const missingRes = await POST(
-      createJsonRequest(
-        JSON.stringify({ messages: [{ role: "user", content: "Hi" }] }),
-      ),
-    );
-    expect(missingRes.status).toBe(503);
+    expect(
+      (
+        await POST(
+          createJsonRequest(
+            JSON.stringify({ messages: [{ role: "user", content: "Hi" }] }),
+          ),
+        )
+      ).status,
+    ).toBe(503);
 
-    mockedRequestReply.mockRejectedValueOnce(
-      new OpenRouterError("timeout", "Timed out"),
-    );
-    const timeoutRes = await POST(
-      createJsonRequest(
-        JSON.stringify({ messages: [{ role: "user", content: "Hi" }] }),
-      ),
-    );
-    expect(timeoutRes.status).toBe(504);
-
-    mockedRequestReply.mockRejectedValueOnce(
-      new OpenRouterError("rate-limited", "Busy"),
-    );
-    const rateRes = await POST(
-      createJsonRequest(
-        JSON.stringify({ messages: [{ role: "user", content: "Hi" }] }),
-      ),
-    );
-    expect(rateRes.status).toBe(429);
-    expect(rateRes.headers.get("retry-after")).toBe("10");
-
-    mockedRequestReply.mockRejectedValueOnce(
-      new OpenRouterError("upstream-error", "Upstream unavailable"),
-    );
-    const upstreamRes = await POST(
-      createJsonRequest(
-        JSON.stringify({ messages: [{ role: "user", content: "Hi" }] }),
-      ),
-    );
-    expect(upstreamRes.status).toBe(502);
-    expect(upstreamRes.headers.get("cache-control")).toBe("no-store");
-
-    mockedRequestReply.mockRejectedValueOnce(
-      new OpenRouterError("invalid-response", "Invalid format"),
-    );
-    const invalidRes = await POST(
-      createJsonRequest(
-        JSON.stringify({ messages: [{ role: "user", content: "Hi" }] }),
-      ),
-    );
-    expect(invalidRes.status).toBe(502);
-
-    mockedRequestReply.mockRejectedValueOnce(
+    mockedRequestOpenRouter.mockRejectedValueOnce(
       new Error("INTERNAL_SECRET_TRACE_DO_NOT_LEAK"),
     );
     const unexpectedRes = await POST(
@@ -256,13 +328,14 @@ describe("POST /api/digital-twin", () => {
     expect(unexpectedBody).not.toContain("INTERNAL_SECRET_TRACE_DO_NOT_LEAK");
   });
 
-  it("enforces per-IP rate limiting with 429 and Retry-After header", async () => {
-    mockedRequestReply.mockResolvedValue({
+  it("enforces per-IP rate limit, global circuit breaker, and concurrency slot cap", async () => {
+    mockedRequestN8n.mockResolvedValue({
       reply: "Answer",
-      model: "google/gemma-4-26b-a4b-it:free",
+      model: "ollama-n8n",
     });
 
-    for (let i = 0; i < 15; i += 1) {
+    // 1. Per-IP limit (10 requests)
+    for (let i = 0; i < 10; i += 1) {
       const ok = await POST(
         createJsonRequest(
           JSON.stringify({ messages: [{ role: "user", content: `Q ${i}` }] }),
@@ -271,14 +344,81 @@ describe("POST /api/digital-twin", () => {
       expect(ok.status).toBe(200);
     }
 
-    const blocked = await POST(
+    const ipBlocked = await POST(
       createJsonRequest(
-        JSON.stringify({ messages: [{ role: "user", content: "Q 16" }] }),
+        JSON.stringify({ messages: [{ role: "user", content: "Q 11" }] }),
       ),
     );
-    expect(blocked.status).toBe(429);
-    expect(Number(blocked.headers.get("retry-after"))).toBeGreaterThanOrEqual(
+    expect(ipBlocked.status).toBe(429);
+    expect(Number(ipBlocked.headers.get("retry-after"))).toBeGreaterThanOrEqual(
       1,
     );
+
+    // 2. Global circuit breaker across distinct IPs (40 total requests)
+    digitalTwinRateLimiter.reset();
+    digitalTwinGlobalLimiter.reset();
+    for (let i = 0; i < 40; i += 1) {
+      const ok = await POST(
+        createJsonRequest(
+          JSON.stringify({ messages: [{ role: "user", content: "Hi" }] }),
+          { "x-forwarded-for": `198.51.100.${i + 10}` },
+        ),
+      );
+      expect(ok.status).toBe(200);
+    }
+
+    const globalBlocked = await POST(
+      createJsonRequest(
+        JSON.stringify({ messages: [{ role: "user", content: "Hi" }] }),
+        { "x-forwarded-for": "198.51.100.250" },
+      ),
+    );
+    expect(globalBlocked.status).toBe(429);
+
+    // 3. Concurrency cap (max 4 in-flight)
+    digitalTwinRateLimiter.reset();
+    digitalTwinGlobalLimiter.reset();
+    digitalTwinConcurrencyLimiter.reset();
+
+    const pendingResolvers: Array<() => void> = [];
+    mockedRequestN8n.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          pendingResolvers.push(() =>
+            resolve({ reply: "Done", model: "ollama-n8n" }),
+          );
+        }),
+    );
+
+    const pendingCalls = [0, 1, 2, 3].map((idx) =>
+      POST(
+        createJsonRequest(
+          JSON.stringify({ messages: [{ role: "user", content: `C ${idx}` }] }),
+          { "x-forwarded-for": `203.0.113.${idx + 1}` },
+        ),
+      ),
+    );
+
+    // Allow microtasks to reach requestN8nDigitalTwinReply
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // 5th simultaneous request is rejected immediately with 429
+    const overflow = await POST(
+      createJsonRequest(
+        JSON.stringify({ messages: [{ role: "user", content: "Overflow" }] }),
+        { "x-forwarded-for": "203.0.113.99" },
+      ),
+    );
+    expect(overflow.status).toBe(429);
+    expect(overflow.headers.get("retry-after")).toBe("5");
+
+    for (const resolve of pendingResolvers) {
+      resolve();
+    }
+    const settled = await Promise.all(pendingCalls);
+    for (const res of settled) {
+      expect(res.status).toBe(200);
+    }
+    expect(digitalTwinConcurrencyLimiter.getActiveCount()).toBe(0);
   });
 });

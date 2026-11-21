@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   N8N_DEFAULT_MODEL_LABEL,
+  N8N_TIMEOUT_MS,
   N8nError,
   formatConversationPrompt,
   requestN8nDigitalTwinReply,
@@ -30,6 +31,7 @@ describe("n8n webhook client", () => {
   });
 
   it("formats single-turn and multi-turn conversation prompts cleanly", () => {
+    expect(N8N_TIMEOUT_MS).toBeGreaterThanOrEqual(30_000);
     expect(
       formatConversationPrompt([{ role: "user", content: "  Hi there  " }]),
     ).toBe("Hi there");

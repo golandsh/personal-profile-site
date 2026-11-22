@@ -7,14 +7,14 @@ export function AboutSection(): ReactElement {
   return (
     <section
       id="about"
-      className="border-b border-slate-800/80 py-20 sm:py-24"
+      className="border-b border-[var(--surface-hairline)] py-20 sm:py-24"
     >
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
         <SectionHeading
           index="01"
           eyebrow="About Me"
-          title="Enterprise depth. Startup tempo."
-          subtitle="Two decades of turning complex domain constraints—payments, national infrastructure, broadcast engines, and visual editors—into durable software."
+          title="Practical engineering, steady delivery."
+          subtitle="Turning everyday product and backend challenges—payments, agritech data pipelines, editors, and integrations—into clean, reliable software."
         />
 
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
@@ -22,46 +22,46 @@ export function AboutSection(): ReactElement {
             {PROFILE.aboutParagraphs.map((paragraph, index) => (
               <p
                 key={index}
-                className="text-base leading-relaxed text-slate-300"
+                className="text-base leading-relaxed text-[var(--ink-secondary)]"
               >
                 {paragraph}
               </p>
             ))}
 
-            <div className="mt-2 border border-slate-800 bg-slate-950/70 p-5">
-              <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.18em] text-cyan-300">
+            <div className="mt-2 border border-[var(--surface-hairline)] bg-[var(--surface-panel)] p-5">
+              <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.18em] text-[var(--accent-ink)]">
                 <GraduationCap className="h-4 w-4" aria-hidden="true" />
-                <span>Education</span>
+                <span>Education &amp; Training</span>
               </div>
               <ul className="mt-4 space-y-3.5">
                 {PROFILE.education.map((entry) => (
                   <li
                     key={entry.id}
-                    className="border-l-2 border-slate-700 pl-3.5"
+                    className="border-l-2 border-[var(--surface-hairline)] pl-3.5"
                   >
-                    <div className="text-sm font-semibold text-slate-100">
+                    <div className="text-sm font-semibold text-[var(--ink-primary)]">
                       {entry.institution}
                     </div>
-                    <div className="text-xs text-slate-300">
+                    <div className="text-xs text-[var(--ink-secondary)]">
                       {entry.degree} · {entry.field}
                     </div>
-                    <div className="mt-0.5 font-mono text-[11px] text-slate-400">
+                    <div className="mt-0.5 font-mono text-[11px] text-[var(--ink-muted)]">
                       {entry.period}
                     </div>
                   </li>
                 ))}
               </ul>
 
-              <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-800/90 pt-4">
-                <span className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-slate-400">
-                  <Languages className="h-3.5 w-3.5 text-cyan-300" aria-hidden="true" />
+              <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[var(--surface-hairline)] pt-4">
+                <span className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--ink-muted)]">
+                  <Languages className="h-3.5 w-3.5 text-[var(--accent-ink)]" aria-hidden="true" />
                   Languages
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {PROFILE.languages.map((language) => (
                     <span
                       key={language}
-                      className="border border-slate-800 bg-slate-900 px-2.5 py-0.5 font-mono text-xs text-slate-200"
+                      className="border border-[var(--surface-hairline)] bg-[var(--surface-chip)] px-2.5 py-0.5 font-mono text-xs text-[var(--ink-secondary)]"
                     >
                       {language}
                     </span>
@@ -78,18 +78,18 @@ export function AboutSection(): ReactElement {
                 className="dossier-card corner-accent reveal-on-scroll flex flex-col justify-between p-6"
               >
                 <div>
-                  <span className="font-mono text-xs tracking-[0.2em] text-cyan-300">
+                  <span className="font-mono text-xs tracking-[0.2em] text-[var(--accent-ink)]">
                     PILLAR {pillar.index}
                   </span>
-                  <h3 className="mt-2.5 font-[family-name:var(--font-display)] text-lg font-semibold tracking-[-0.02em] text-slate-50">
+                  <h3 className="mt-2.5 font-display text-lg font-semibold tracking-[-0.02em] text-[var(--ink-primary)]">
                     {pillar.title}
                   </h3>
-                  <p className="mt-2.5 text-sm leading-relaxed text-slate-300">
+                  <p className="mt-2.5 text-sm leading-relaxed text-[var(--ink-secondary)]">
                     {pillar.description}
                   </p>
                 </div>
 
-                <footer className="mt-5 border-t border-slate-800/90 pt-3 font-mono text-[11px] tracking-[0.06em] text-slate-400">
+                <footer className="mt-5 border-t border-[var(--surface-hairline)] pt-3 font-mono text-[11px] tracking-[0.06em] text-[var(--ink-muted)]">
                   {pillar.proofPoint}
                 </footer>
               </article>

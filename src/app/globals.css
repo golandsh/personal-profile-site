@@ -7,27 +7,83 @@
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
 
-  --surface-obsidian: #07090d;
-  --surface-slate: #0d121a;
-  --surface-elevated: #121926;
-  --surface-hairline: rgba(148, 163, 184, 0.14);
-  --surface-hairline-strong: rgba(56, 232, 255, 0.34);
+  &:has(> head > meta[name="color-scheme"][content="dark"]) {
+    color-scheme: dark;
+  }
 
-  --ink-primary: #f4f7fb;
-  --ink-secondary: #a7b4c8;
-  --ink-muted: #76859b;
+  &:has(> head > meta[name="color-scheme"][content="light"]) {
+    color-scheme: light;
+  }
 
-  --accent-cyan: #22d3ee;
-  --accent-volt: #b8ff3b;
-  --accent-cyan-soft: rgba(34, 211, 238, 0.12);
+  --surface-obsidian: light-dark(#f6f8fb, #07090d);
+  --surface-header: light-dark(rgba(248, 250, 252, 0.88), rgba(7, 9, 13, 0.85));
+  --surface-footer: light-dark(#eef2f7, #05070b);
+  --surface-slate: light-dark(#ffffff, #0d121a);
+  --surface-elevated: light-dark(#ffffff, #121926);
+  --surface-panel: light-dark(#f1f5f9, rgba(2, 6, 23, 0.72));
+  --surface-chip: light-dark(#f8fafc, rgba(15, 23, 42, 0.85));
+  --surface-hairline: light-dark(rgba(15, 23, 42, 0.14), rgba(148, 163, 184, 0.16));
+  --surface-hairline-strong: light-dark(rgba(8, 145, 178, 0.45), rgba(56, 232, 255, 0.34));
 
-  --scrollbar-track: #0a0e14;
-  --scrollbar-thumb: #2b374a;
+  --ink-primary: light-dark(#0f172a, #f4f7fb);
+  --ink-secondary: light-dark(#334155, #cbd5e1);
+  --ink-muted: light-dark(#475569, #94a3b8);
 
-  accent-color: var(--accent-cyan);
+  --accent-ink: light-dark(#0e7490, #22d3ee);
+  --accent-ink-strong: light-dark(#155e75, #67e8f9);
+  --accent-solid: light-dark(#0891b2, #67e8f9);
+  --accent-solid-hover: light-dark(#0e7490, #b8ff3b);
+  --accent-on-solid: light-dark(#ffffff, #020617);
+  --accent-soft: light-dark(rgba(8, 145, 178, 0.1), rgba(34, 211, 238, 0.12));
+  --accent-volt: light-dark(#3f6212, #b8ff3b);
+  --accent-volt-soft: light-dark(rgba(101, 163, 13, 0.12), rgba(184, 255, 59, 0.14));
+
+  --grid-line: light-dark(rgba(15, 23, 42, 0.05), rgba(148, 163, 184, 0.045));
+  --glow-cyan: light-dark(rgba(8, 145, 178, 0.09), rgba(34, 211, 238, 0.12));
+  --glow-volt: light-dark(rgba(101, 163, 13, 0.06), rgba(184, 255, 59, 0.05));
+
+  --scrollbar-track: light-dark(#e2e8f0, #0a0e14);
+  --scrollbar-thumb: light-dark(#94a3b8, #2b374a);
+
+  accent-color: var(--accent-ink);
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Theme toggle icon visibility driven by active color-scheme without JS flicker */
+.theme-icon-sun {
+  display: none;
+}
+.theme-icon-moon {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  .theme-icon-sun {
+    display: block;
+  }
+  .theme-icon-moon {
+    display: none;
+  }
+}
+
+:root:has(> head > meta[name="color-scheme"][content="dark"]) {
+  .theme-icon-sun {
+    display: block;
+  }
+  .theme-icon-moon {
+    display: none;
+  }
+}
+
+:root:has(> head > meta[name="color-scheme"][content="light"]) {
+  .theme-icon-sun {
+    display: none;
+  }
+  .theme-icon-moon {
+    display: block;
+  }
 }
 
 @supports not (scrollbar-color: auto) {
@@ -75,11 +131,11 @@ body {
 
 ::selection {
   background-color: rgba(34, 211, 238, 0.28);
-  color: #ffffff;
+  color: var(--ink-primary);
 }
 
 :where(a:any-link, button, [tabindex="-1"]):focus-visible {
-  outline: 3px solid var(--accent-cyan);
+  outline: 3px solid var(--accent-ink);
   outline-offset: 3px;
 }
 
@@ -102,30 +158,30 @@ body {
   left: 0.75rem;
   z-index: 100;
   padding: 0.75rem 1.25rem;
-  background: var(--accent-cyan);
-  color: #051017;
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
   font-weight: 700;
   font-size: 0.875rem;
   border-radius: 0.375rem;
   text-decoration: none;
 }
 
-/* Architectural obsidian coordinate grid + controlled atmospheric glow */
+/* Architectural coordinate grid + controlled atmospheric glow */
 .architectural-backdrop {
   background-color: var(--surface-obsidian);
   background-image:
     radial-gradient(
       900px circle at 82% -8%,
-      rgba(34, 211, 238, 0.12),
+      var(--glow-cyan),
       transparent 55%
     ),
     radial-gradient(
       640px circle at 12% 18%,
-      rgba(184, 255, 59, 0.05),
+      var(--glow-volt),
       transparent 52%
     ),
-    linear-gradient(to right, rgba(148, 163, 184, 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
   background-size: auto, auto, 72px 72px, 72px 72px;
   background-position: center top;
 }
@@ -140,7 +196,7 @@ body {
   pointer-events: none;
   background: linear-gradient(
     90deg,
-    var(--accent-cyan) 0%,
+    var(--accent-ink) 0%,
     #38bdf8 65%,
     var(--accent-volt) 100%
   );
@@ -191,13 +247,15 @@ body {
 /* Container-aware Dossier Cards */
 .dossier-card {
   container-type: inline-size;
-  background: linear-gradient(
-    180deg,
-    rgba(19, 27, 42, 0.9) 0%,
-    rgba(10, 14, 22, 0.96) 100%
+  background: light-dark(
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%),
+    linear-gradient(180deg, rgba(19, 27, 42, 0.9) 0%, rgba(10, 14, 22, 0.96) 100%)
   );
   border: 1px solid var(--surface-hairline);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+  box-shadow: light-dark(
+    0 10px 30px -18px rgba(15, 23, 42, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055)
+  );
   transition:
     border-color 180ms ease,
     background-color 180ms ease,
@@ -206,9 +264,10 @@ body {
 
 .dossier-card:hover {
   border-color: var(--surface-hairline-strong);
-  box-shadow:
-    inset 0 1px 0 rgba(56, 232, 255, 0.2),
-    0 20px 52px -24px rgba(34, 211, 238, 0.26);
+  box-shadow: light-dark(
+    0 18px 40px -20px rgba(8, 145, 178, 0.22),
+    inset 0 1px 0 rgba(56, 232, 255, 0.2), 0 20px 52px -24px rgba(34, 211, 238, 0.26)
+  );
 }
 
 .dossier-card-grid {
@@ -242,15 +301,15 @@ body {
 .corner-accent::before {
   inset-block-start: -1px;
   inset-inline-start: -1px;
-  border-block-start: 2px solid var(--accent-cyan);
-  border-inline-start: 2px solid var(--accent-cyan);
+  border-block-start: 2px solid var(--accent-ink);
+  border-inline-start: 2px solid var(--accent-ink);
 }
 
 .corner-accent::after {
   inset-block-end: -1px;
   inset-inline-end: -1px;
-  border-block-end: 1px solid rgba(184, 255, 59, 0.45);
-  border-inline-end: 1px solid rgba(184, 255, 59, 0.45);
+  border-block-end: 1px solid var(--accent-volt);
+  border-inline-end: 1px solid var(--accent-volt);
 }
 
 /* Native top-layer Architecture Brief <dialog> */
@@ -264,13 +323,16 @@ body {
   overflow: auto;
   padding: 0;
   color: var(--ink-primary);
-  background: linear-gradient(180deg, #111827 0%, #090d14 100%);
-  border: 1px solid rgba(34, 211, 238, 0.35);
-  box-shadow: 0 32px 96px -24px rgba(0, 0, 0, 0.85);
+  background: light-dark(
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%),
+    linear-gradient(180deg, #111827 0%, #090d14 100%)
+  );
+  border: 1px solid var(--surface-hairline-strong);
+  box-shadow: 0 32px 96px -24px rgba(0, 0, 0, 0.55);
 }
 
 .brief-dialog::backdrop {
-  background: rgba(3, 6, 11, 0.78);
+  background: light-dark(rgba(15, 23, 42, 0.48), rgba(3, 6, 11, 0.78));
   backdrop-filter: blur(6px);
 }
 
@@ -305,8 +367,11 @@ body {
   inline-size: 0.5rem;
   block-size: 0.5rem;
   border-radius: 9999px;
-  background-color: var(--accent-volt);
-  box-shadow: 0 0 12px rgba(184, 255, 59, 0.75);
+  background-color: light-dark(#16a34a, #b8ff3b);
+  box-shadow: light-dark(
+    0 0 8px rgba(22, 163, 74, 0.55),
+    0 0 12px rgba(184, 255, 59, 0.75)
+  );
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -383,7 +448,7 @@ body {
   display: inline-block;
   inline-size: 3px;
   block-size: 12px;
-  background-color: var(--accent-cyan);
+  background-color: var(--accent-ink);
   opacity: 0.85;
 }
 

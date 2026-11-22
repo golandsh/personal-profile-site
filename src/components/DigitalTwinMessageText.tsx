@@ -16,7 +16,7 @@ function renderInlineBold(text: string): ReactNode[] {
       nodes.push(
         <strong
           key={`b-${matchIndex}`}
-          className="font-semibold text-slate-50"
+          className="font-semibold text-[var(--ink-primary)]"
         >
           {boldText}
         </strong>,
@@ -65,7 +65,7 @@ export function DigitalTwinMessageText({
                 >
                   <span
                     aria-hidden="true"
-                    className="mt-2 h-1.5 w-1.5 shrink-0 bg-cyan-300"
+                    className="mt-2 h-1.5 w-1.5 shrink-0 bg-[var(--accent-ink)]"
                   />
                   <span>
                     {renderInlineBold(line.replace(BULLET_PREFIX, ""))}

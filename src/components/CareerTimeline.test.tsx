@@ -37,7 +37,14 @@ describe("CareerTimeline", () => {
 
     expect(
       filterCareerRoles(PROFILE.career, "cloud-payments").map((r) => r.company),
-    ).toEqual(["WiseStamp", "Pango Pay & Go", "Taldor", "Pilat Media", "Advantech"]);
+    ).toEqual([
+      "WiseStamp",
+      "Agmatix",
+      "Pango Pay & Go",
+      "Taldor",
+      "Pilat Media",
+      "Advantech",
+    ]);
 
     expect(
       filterCareerRoles(PROFILE.career, "frontend-product").map((r) => r.company),
@@ -53,7 +60,7 @@ describe("CareerTimeline", () => {
       name: /Leadership & Scale\s*3/i,
     });
     const cloudButton = screen.getByRole("button", {
-      name: /Cloud & Payments\s*5/i,
+      name: /Cloud & Payments\s*6/i,
     });
 
     expect(allButton).toHaveAttribute("aria-pressed", "true");

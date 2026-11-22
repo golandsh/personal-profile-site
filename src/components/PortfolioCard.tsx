@@ -37,7 +37,7 @@ function renderStatusActions(
               href={safeLiveUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center gap-1.5 bg-cyan-300 px-4 text-xs font-bold uppercase tracking-[0.12em] text-slate-950 transition-colors hover:bg-[#b8ff3b]"
+              className="inline-flex min-h-11 items-center gap-1.5 bg-[var(--accent-solid)] px-4 text-xs font-bold uppercase tracking-[0.12em] text-[var(--accent-on-solid)] transition-colors hover:bg-[var(--accent-solid-hover)]"
             >
               <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
               <span>
@@ -51,7 +51,7 @@ function renderStatusActions(
               href={safeRepoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center gap-1.5 border border-slate-700 px-3.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-200 transition-colors hover:border-cyan-400/70 hover:text-cyan-200"
+              className="inline-flex min-h-11 items-center gap-1.5 border border-[var(--surface-hairline)] px-3.5 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-primary)] transition-colors hover:border-[var(--accent-ink)] hover:text-[var(--accent-ink)]"
             >
               <Code2 className="h-3.5 w-3.5" aria-hidden="true" />
               <span>
@@ -64,9 +64,9 @@ function renderStatusActions(
           <button
             type="button"
             onClick={onOpenBrief}
-            className="inline-flex min-h-11 items-center gap-1.5 border border-slate-800 bg-slate-950/70 px-3.5 font-mono text-[11px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/60 hover:text-cyan-200"
+            className="inline-flex min-h-11 items-center gap-1.5 border border-[var(--surface-hairline)] bg-[var(--surface-panel)] px-3.5 font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--ink-secondary)] transition-colors hover:border-[var(--accent-ink)] hover:text-[var(--accent-ink)]"
           >
-            <FileCode2 className="h-3.5 w-3.5 text-cyan-300" aria-hidden="true" />
+            <FileCode2 className="h-3.5 w-3.5 text-[var(--accent-ink)]" aria-hidden="true" />
             <span>
               Brief
               <span className="visually-hidden"> for {project.title}</span>
@@ -79,14 +79,14 @@ function renderStatusActions(
     case "upcoming":
       return (
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-          <span className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-slate-400">
-            <Clock className="h-3.5 w-3.5 text-cyan-400" aria-hidden="true" />
+          <span className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+            <Clock className="h-3.5 w-3.5 text-[var(--accent-ink)]" aria-hidden="true" />
             {project.targetRelease}
           </span>
           <button
             type="button"
             onClick={onOpenBrief}
-            className="inline-flex min-h-11 items-center gap-1.5 border border-cyan-400/40 bg-cyan-400/10 px-3.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-cyan-200 transition-colors hover:border-cyan-300 hover:bg-cyan-300 hover:text-slate-950"
+            className="inline-flex min-h-11 items-center gap-1.5 border border-[var(--accent-ink)]/45 bg-[var(--accent-soft)] px-3.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--accent-ink-strong)] transition-colors hover:bg-[var(--accent-solid)] hover:text-[var(--accent-on-solid)]"
           >
             <FileCode2 className="h-3.5 w-3.5" aria-hidden="true" />
             <span>
@@ -153,13 +153,13 @@ export function PortfolioCard({ project }: PortfolioCardProps): ReactElement {
   return (
     <article className="dossier-card corner-accent reveal-on-scroll flex flex-col justify-between p-6 sm:p-7">
       <div>
-        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-4">
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--surface-hairline)] pb-4">
           <div className="flex items-center gap-2.5 font-mono text-xs">
-            <span className="text-cyan-300">{project.code}</span>
-            <span aria-hidden="true" className="text-slate-700">
+            <span className="text-[var(--accent-ink)]">{project.code}</span>
+            <span aria-hidden="true" className="text-[var(--ink-muted)]">
               /
             </span>
-            <span className="uppercase tracking-[0.12em] text-slate-400">
+            <span className="uppercase tracking-[0.12em] text-[var(--ink-muted)]">
               {project.domain}
             </span>
           </div>
@@ -167,8 +167,8 @@ export function PortfolioCard({ project }: PortfolioCardProps): ReactElement {
           <span
             className={`border px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] ${
               project.status === "live"
-                ? "border-[#b8ff3b]/50 bg-[#b8ff3b]/15 text-[#d5ff82]"
-                : "border-cyan-400/35 bg-cyan-400/10 text-cyan-200"
+                ? "border-[var(--accent-volt)]/50 bg-[var(--accent-volt-soft)] text-[var(--accent-volt)]"
+                : "border-[var(--accent-ink)]/35 bg-[var(--accent-soft)] text-[var(--accent-ink-strong)]"
             }`}
           >
             {project.status === "live" ? "Live Project" : "Dossier Queued"}
@@ -176,19 +176,19 @@ export function PortfolioCard({ project }: PortfolioCardProps): ReactElement {
         </header>
 
         <div className="mt-5">
-          <div className="font-mono text-xs text-slate-400">
+          <div className="font-mono text-xs text-[var(--ink-muted)]">
             {project.organization} · {project.year}
           </div>
-          <h3 className="mt-1.5 font-[family-name:var(--font-display)] text-xl font-bold tracking-[-0.02em] text-slate-50">
+          <h3 className="mt-1.5 font-display text-xl font-bold tracking-[-0.02em] text-[var(--ink-primary)]">
             {project.title}
           </h3>
-          <p className="mt-3 text-sm leading-relaxed text-slate-300">
+          <p className="mt-3 text-sm leading-relaxed text-[var(--ink-secondary)]">
             {project.summary}
           </p>
 
-          <p className="mt-4 border-l-2 border-cyan-400/60 bg-slate-950/60 px-3.5 py-2.5 text-xs leading-relaxed text-slate-200">
-            <span className="font-mono uppercase tracking-[0.14em] text-cyan-300">
-              Impact:{" "}
+          <p className="mt-4 border-l-2 border-[var(--accent-ink)]/60 bg-[var(--surface-panel)] px-3.5 py-2.5 text-xs leading-relaxed text-[var(--ink-primary)]">
+            <span className="font-mono uppercase tracking-[0.14em] text-[var(--accent-ink)]">
+              Outcome:{" "}
             </span>
             {project.impact}
           </p>
@@ -201,7 +201,7 @@ export function PortfolioCard({ project }: PortfolioCardProps): ReactElement {
           {project.stack.map((tech) => (
             <li
               key={tech}
-              className="border border-slate-800 bg-slate-950/80 px-2.5 py-1 font-mono text-[11px] text-slate-300"
+              className="border border-[var(--surface-hairline)] bg-[var(--surface-panel)] px-2.5 py-1 font-mono text-[11px] text-[var(--ink-secondary)]"
             >
               {tech}
             </li>
@@ -209,7 +209,7 @@ export function PortfolioCard({ project }: PortfolioCardProps): ReactElement {
         </ul>
       </div>
 
-      <footer className="mt-6 border-t border-slate-800/80 pt-4">
+      <footer className="mt-6 border-t border-[var(--surface-hairline)] pt-4">
         {renderStatusActions(project, openBrief)}
       </footer>
 
@@ -219,18 +219,18 @@ export function PortfolioCard({ project }: PortfolioCardProps): ReactElement {
         onClick={handleBackdropClick}
         className="brief-dialog"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-800 px-6 py-5">
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--surface-hairline)] px-6 py-5">
           <div>
-            <div className="font-mono text-xs uppercase tracking-[0.18em] text-cyan-300">
+            <div className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--accent-ink)]">
               {project.code} {"//"} {project.domain}
             </div>
             <h2
               id={dialogTitleId}
-              className="mt-1 font-[family-name:var(--font-display)] text-2xl font-bold tracking-[-0.02em] text-slate-50"
+              className="mt-1 font-display text-2xl font-bold tracking-[-0.02em] text-[var(--ink-primary)]"
             >
               {project.title}
             </h2>
-            <p className="mt-1 font-mono text-xs text-slate-400">
+            <p className="mt-1 font-mono text-xs text-[var(--ink-muted)]">
               {project.organization} · {project.year}
             </p>
           </div>
@@ -239,27 +239,27 @@ export function PortfolioCard({ project }: PortfolioCardProps): ReactElement {
             type="button"
             onClick={closeBrief}
             aria-label={`Close ${project.title} brief`}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center border border-slate-700 bg-slate-900 text-slate-200 transition-colors hover:border-cyan-400 hover:text-cyan-300"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center border border-[var(--surface-hairline)] bg-[var(--surface-chip)] text-[var(--ink-primary)] transition-colors hover:border-[var(--accent-ink)] hover:text-[var(--accent-ink)]"
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
         <div className="space-y-5 px-6 py-6">
-          <p className="text-sm leading-relaxed text-slate-200">
+          <p className="text-sm leading-relaxed text-[var(--ink-secondary)]">
             {project.summary}
           </p>
 
           <div>
-            <h3 className="font-mono text-xs uppercase tracking-[0.16em] text-cyan-300">
-              Architectural Highlights
+            <h3 className="font-mono text-xs uppercase tracking-[0.16em] text-[var(--accent-ink)]">
+              Key Details
             </h3>
-            <ul className="mt-3 space-y-2.5 text-sm leading-relaxed text-slate-300">
+            <ul className="mt-3 space-y-2.5 text-sm leading-relaxed text-[var(--ink-secondary)]">
               {project.architectureHighlights.map((highlight, index) => (
                 <li key={index} className="flex items-start gap-3">
                   <span
                     aria-hidden="true"
-                    className="mt-2 h-1.5 w-1.5 shrink-0 bg-[#b8ff3b]"
+                    className="mt-2 h-1.5 w-1.5 shrink-0 bg-[var(--accent-volt)]"
                   />
                   <span>{highlight}</span>
                 </li>
@@ -267,15 +267,15 @@ export function PortfolioCard({ project }: PortfolioCardProps): ReactElement {
             </ul>
           </div>
 
-          <div className="border-l-2 border-cyan-400 bg-slate-950/80 px-4 py-3 text-sm text-slate-200">
-            <span className="font-mono text-xs uppercase tracking-[0.14em] text-cyan-300">
+          <div className="border-l-2 border-[var(--accent-ink)] bg-[var(--surface-panel)] px-4 py-3 text-sm text-[var(--ink-primary)]">
+            <span className="font-mono text-xs uppercase tracking-[0.14em] text-[var(--accent-ink)]">
               Outcome:{" "}
             </span>
             {project.impact}
           </div>
 
-          <div className="border-t border-slate-800 pt-4">
-            <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-slate-400">
+          <div className="border-t border-[var(--surface-hairline)] pt-4">
+            <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--ink-muted)]">
               {project.status === "live"
                 ? "Verified External Links"
                 : "Future Portfolio Link Slot"}
@@ -287,7 +287,7 @@ export function PortfolioCard({ project }: PortfolioCardProps): ReactElement {
                     href={project.liveUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-11 items-center gap-2 bg-cyan-300 px-4 text-xs font-bold uppercase tracking-[0.12em] text-slate-950 hover:bg-[#b8ff3b]"
+                    className="inline-flex min-h-11 items-center gap-2 bg-[var(--accent-solid)] px-4 text-xs font-bold uppercase tracking-[0.12em] text-[var(--accent-on-solid)] hover:bg-[var(--accent-solid-hover)]"
                   >
                     <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                     <span>Open Live Deployment</span>
@@ -298,7 +298,7 @@ export function PortfolioCard({ project }: PortfolioCardProps): ReactElement {
                     href={project.repoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-11 items-center gap-2 border border-slate-700 px-4 text-xs font-semibold uppercase tracking-[0.12em] text-slate-200 hover:border-cyan-400 hover:text-cyan-200"
+                    className="inline-flex min-h-11 items-center gap-2 border border-[var(--surface-hairline)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-primary)] hover:border-[var(--accent-ink)] hover:text-[var(--accent-ink)]"
                   >
                     <Code2 className="h-3.5 w-3.5" aria-hidden="true" />
                     <span>Inspect Repository</span>
@@ -306,10 +306,13 @@ export function PortfolioCard({ project }: PortfolioCardProps): ReactElement {
                 ) : null}
               </div>
             ) : (
-              <p className="mt-2 text-xs leading-relaxed text-slate-400">
-                Status: <strong className="text-slate-200">{project.targetRelease}</strong>.
-                Live deployment and public repository links will attach directly
-                to this dossier once published.
+              <p className="mt-2 text-xs leading-relaxed text-[var(--ink-muted)]">
+                Status:{" "}
+                <strong className="text-[var(--ink-primary)]">
+                  {project.targetRelease}
+                </strong>
+                . Live deployment and public repository links will attach
+                directly to this dossier once published.
               </p>
             )}
           </div>

@@ -94,7 +94,7 @@ describe("profile and portfolio data contracts", () => {
   });
 
   it("validates PORTFOLIO_PROJECTS and valid live projects with or without repoUrl", () => {
-    expect(PORTFOLIO_PROJECTS.length).toBeGreaterThanOrEqual(4);
+    expect(PORTFOLIO_PROJECTS).toHaveLength(11);
     for (const project of PORTFOLIO_PROJECTS) {
       expect(PortfolioProjectSchema.safeParse(project).success).toBe(true);
     }

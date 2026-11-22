@@ -80,6 +80,8 @@ export const ProfileSchema = z.object({
   coordinates: z.string().min(1),
   email: z.string().email(),
   linkedinUrl: SafeHttpsUrlSchema,
+  githubUrl: SafeHttpsUrlSchema,
+  portraitPath: z.string().min(1),
   availabilityStatus: z.string().min(1),
   heroLead: z.string().min(1),
   aboutParagraphs: z.array(z.string().min(1)).min(1),

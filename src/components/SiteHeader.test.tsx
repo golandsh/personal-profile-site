@@ -15,7 +15,6 @@ function createHeaderProps(
   return {
     monogram: "SG_",
     name: "Shlomi Goland",
-    linkedinUrl: "https://www.linkedin.com/in/shlomi-goland-37659346",
     ...overrides,
   };
 }

@@ -59,16 +59,19 @@ describe("PortfolioArchive", () => {
     );
 
     const payments = filterPortfolioProjects(PORTFOLIO_PROJECTS, "Payments");
-    expect(payments).toHaveLength(1);
-    expect(payments[0]?.id).toBe("recurly-revenue-platform");
+    expect(payments).toHaveLength(2);
+    expect(payments.map((p) => p.id)).toEqual([
+      "recurly-revenue-platform",
+      "taldor-recurring-payments",
+    ]);
   });
 
   it("updates visible projects, aria-pressed states, and restores All filter", async () => {
     const user = userEvent.setup();
     render(<PortfolioArchive projects={PORTFOLIO_PROJECTS} />);
 
-    const allButton = screen.getByRole("button", { name: /All\s*4/i });
-    const aiButton = screen.getByRole("button", { name: /AI Workflows\s*1/i });
+    const allButton = screen.getByRole("button", { name: /All\s*11/i });
+    const aiButton = screen.getByRole("button", { name: /AI Workflows\s*2/i });
     expect(allButton).toHaveAttribute("aria-pressed", "true");
 
     await user.click(aiButton);
@@ -77,7 +80,13 @@ describe("PortfolioArchive", () => {
     expect(
       screen.getByRole("heading", {
         level: 3,
-        name: "AI-Native Engineering Workflow Playbook",
+        name: "Embeddable Gemini Voice Agent",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        level: 3,
+        name: "LangChain AI Signature Agent",
       }),
     ).toBeInTheDocument();
     expect(
@@ -215,7 +224,7 @@ describe("PortfolioArchive", () => {
 
     // Clicking inside dialog content must NOT close it
     fireEvent.click(
-      within(dialogElement).getByText("Architectural Highlights"),
+      within(dialogElement).getByText("Key Details"),
     );
     expect(closeSpy).not.toHaveBeenCalled();
 

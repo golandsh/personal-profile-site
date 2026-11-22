@@ -51,16 +51,16 @@ export function CopyEmailButton({ email }: CopyEmailButtonProps): ReactElement {
         onClick={() => {
           void handleCopyEmail();
         }}
-        className="inline-flex min-h-12 w-full items-center justify-center gap-2 border border-slate-700 bg-slate-950/80 px-4 font-mono text-xs uppercase tracking-[0.12em] text-slate-200 transition-colors hover:border-cyan-400/70 hover:text-cyan-200"
+        className="inline-flex min-h-12 w-full items-center justify-center gap-2 border border-[var(--surface-hairline)] bg-[var(--surface-chip)] px-3.5 font-mono text-xs uppercase tracking-[0.12em] text-[var(--ink-primary)] transition-colors hover:border-[var(--accent-ink)] hover:text-[var(--accent-ink)]"
       >
         {copyState === "copied" ? (
           <>
-            <Check className="h-4 w-4 text-[#b8ff3b]" aria-hidden="true" />
+            <Check className="h-4 w-4 text-[var(--accent-volt)]" aria-hidden="true" />
             <span>Copied</span>
           </>
         ) : (
           <>
-            <Copy className="h-4 w-4 text-cyan-300" aria-hidden="true" />
+            <Copy className="h-4 w-4 text-[var(--accent-ink)]" aria-hidden="true" />
             <span>Copy Email</span>
           </>
         )}
@@ -69,7 +69,7 @@ export function CopyEmailButton({ email }: CopyEmailButtonProps): ReactElement {
       <p
         role="status"
         aria-live="polite"
-        className="min-h-4 font-mono text-xs text-cyan-200"
+        className="min-h-4 font-mono text-xs text-[var(--accent-ink)]"
       >
         {copyState === "copied"
           ? `Email ${email} copied to clipboard.`

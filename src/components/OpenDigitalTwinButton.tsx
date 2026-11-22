@@ -22,9 +22,9 @@ export function OpenDigitalTwinButton({
     <button
       type="button"
       onClick={dispatchOpenDigitalTwin}
-      className="inline-flex min-h-12 items-center gap-2 border border-cyan-400/60 bg-cyan-400/12 px-5 text-sm font-semibold text-cyan-200 transition-colors hover:border-cyan-300 hover:bg-cyan-400/20 hover:text-white"
+      className="inline-flex min-h-12 items-center gap-2 border border-[var(--accent-ink)]/60 bg-[var(--accent-soft)] px-5 text-sm font-semibold text-[var(--accent-ink-strong)] transition-colors hover:bg-[var(--accent-solid)] hover:text-[var(--accent-on-solid)]"
     >
-      <Sparkles className="h-4 w-4 text-[#b8ff3b]" aria-hidden="true" />
+      <Sparkles className="h-4 w-4 text-[var(--accent-volt)]" aria-hidden="true" />
       <span>{label}</span>
     </button>
   );

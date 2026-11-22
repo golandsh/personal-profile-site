@@ -58,16 +58,16 @@ export function PortfolioArchive({
               onClick={() => setSelectedDomain(domain)}
               className={`inline-flex min-h-11 items-center gap-2 border px-3.5 font-mono text-xs uppercase tracking-[0.08em] transition-colors ${
                 active
-                  ? "border-cyan-300 bg-cyan-400/15 text-cyan-200"
-                  : "border-slate-800 bg-slate-950/70 text-slate-300 hover:border-slate-600 hover:text-white"
+                  ? "border-[var(--accent-ink)] bg-[var(--accent-soft)] text-[var(--accent-ink-strong)]"
+                  : "border-[var(--surface-hairline)] bg-[var(--surface-panel)] text-[var(--ink-secondary)] hover:border-[var(--accent-ink)]/60 hover:text-[var(--ink-primary)]"
               }`}
             >
               <span>{domain}</span>
               <span
                 className={`px-1.5 py-0.5 text-[10px] ${
                   active
-                    ? "bg-cyan-300 font-bold text-slate-950"
-                    : "bg-slate-800 text-slate-300"
+                    ? "bg-[var(--accent-solid)] font-bold text-[var(--accent-on-solid)]"
+                    : "bg-[var(--surface-chip)] text-[var(--ink-muted)]"
                 }`}
               >
                 {count}
@@ -78,7 +78,7 @@ export function PortfolioArchive({
       </div>
 
       {filteredProjects.length === 0 ? (
-        <div className="border border-slate-800 bg-slate-950/70 p-8 text-center font-mono text-sm text-slate-400">
+        <div className="border border-[var(--surface-hairline)] bg-[var(--surface-panel)] p-8 text-center font-mono text-sm text-[var(--ink-muted)]">
           No portfolio items in this category yet.
         </div>
       ) : (

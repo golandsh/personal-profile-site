@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowUpRight, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactElement, useEffect, useId, useRef, useState } from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface NavItem {
   readonly label: string;
@@ -16,19 +17,18 @@ const NAV_ITEMS: readonly NavItem[] = [
   { label: "Career", href: "/#career" },
   { label: "Stack", href: "/#capabilities" },
   { label: "Portfolio", href: "/portfolio", matchPath: "/portfolio" },
+  { label: "Private Life", href: "/private-life", matchPath: "/private-life" },
   { label: "Contact", href: "/#contact" },
 ];
 
 export interface SiteHeaderProps {
   readonly monogram: string;
   readonly name: string;
-  readonly linkedinUrl: string;
 }
 
 export function SiteHeader({
   monogram,
   name,
-  linkedinUrl,
 }: SiteHeaderProps): ReactElement {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
@@ -61,85 +61,75 @@ export function SiteHeader({
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-800/80 bg-[#07090d]/85 backdrop-blur-md">
-      <div className="mx-auto flex h-18 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/"
-            aria-current={pathname === "/" ? "page" : undefined}
-            className="group inline-flex min-h-11 items-center gap-2.5 text-slate-50 transition-colors hover:text-cyan-300"
-          >
-            <span className="inline-flex h-9 w-11 items-center justify-center border border-cyan-400/50 bg-cyan-400/10 font-mono text-sm font-semibold tracking-wider text-cyan-300 transition-colors group-hover:border-cyan-300 group-hover:bg-cyan-400/20">
-              {monogram}
-            </span>
-            <span className="font-display text-base font-semibold tracking-[-0.02em]">
-              {name}
-            </span>
-          </Link>
-
-          <span className="hidden items-center gap-2 border-l border-slate-800 pl-4 font-mono text-[11px] tracking-[0.16em] uppercase text-slate-400 lg:inline-flex">
-            <span className="status-dot" aria-hidden="true" />
-            TLV · 20 YRS EXP
+    <header className="sticky top-0 z-50 border-b border-[var(--surface-hairline)] bg-[var(--surface-header)] backdrop-blur-md">
+      <div className="mx-auto flex h-18 max-w-6xl items-center justify-between gap-6 px-5 sm:px-8">
+        <Link
+          href="/"
+          aria-current={pathname === "/" ? "page" : undefined}
+          className="group inline-flex min-h-11 shrink-0 items-center gap-2.5 text-[var(--ink-primary)] transition-colors hover:text-[var(--accent-ink)]"
+        >
+          <span className="inline-flex h-9 w-11 items-center justify-center border border-[var(--accent-ink)]/50 bg-[var(--accent-soft)] font-mono text-sm font-semibold tracking-wider text-[var(--accent-ink)] transition-colors">
+            {monogram}
           </span>
+          <span className="font-display text-base font-semibold tracking-[-0.02em]">
+            {name}
+          </span>
+        </Link>
+
+        <div className="hidden items-center gap-3 md:flex">
+          <nav aria-label="Primary">
+            <ul className="flex items-center gap-1">
+              {NAV_ITEMS.map((item) => {
+                const active = isCurrentRoute(item);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      className={`inline-flex min-h-11 items-center px-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                        active
+                          ? "border-b-2 border-[var(--accent-ink)] text-[var(--accent-ink)]"
+                          : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          <ThemeToggle />
         </div>
 
-        <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
-          <ul className="flex items-center gap-1">
-            {NAV_ITEMS.map((item) => {
-              const active = isCurrentRoute(item);
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={`inline-flex min-h-11 items-center px-3.5 text-sm font-medium transition-colors ${
-                      active
-                        ? "border-b-2 border-cyan-400 text-cyan-300"
-                        : "text-slate-300 hover:text-white"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-
-          <a
-            href={linkedinUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-3 inline-flex min-h-11 items-center gap-1.5 border border-cyan-400/50 bg-cyan-400/10 px-4 text-xs font-semibold tracking-[0.12em] uppercase text-cyan-200 transition-colors hover:border-cyan-300 hover:bg-cyan-400 hover:text-slate-950"
+        <div className="flex items-center gap-2 md:hidden">
+          <ThemeToggle />
+          <button
+            ref={menuButtonRef}
+            type="button"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center border border-[var(--surface-hairline)] bg-[var(--surface-chip)] px-3 text-[var(--ink-primary)] transition-colors hover:border-[var(--accent-ink)] hover:text-[var(--accent-ink)]"
+            aria-expanded={mobileMenuOpen}
+            aria-controls={mobileMenuId}
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
           >
-            LinkedIn
-            <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-          </a>
-        </nav>
-
-        <button
-          ref={menuButtonRef}
-          type="button"
-          className="inline-flex min-h-11 min-w-11 items-center justify-center border border-slate-700/80 bg-slate-900/80 px-3 text-slate-200 transition-colors hover:border-cyan-400/60 hover:text-cyan-300 md:hidden"
-          aria-expanded={mobileMenuOpen}
-          aria-controls={mobileMenuId}
-          onClick={() => setMobileMenuOpen((prev) => !prev)}
-        >
-          {mobileMenuOpen ? (
-            <X className="h-5 w-5" aria-hidden="true" />
-          ) : (
-            <Menu className="h-5 w-5" aria-hidden="true" />
-          )}
-          <span className="ml-2 font-mono text-xs uppercase tracking-wider">
-            {mobileMenuOpen ? "Close" : "Menu"}
-          </span>
-        </button>
+            {mobileMenuOpen ? (
+              <X className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <Menu className="h-5 w-5" aria-hidden="true" />
+            )}
+            <span className="ml-2 font-mono text-xs uppercase tracking-wider">
+              {mobileMenuOpen ? "Close" : "Menu"}
+            </span>
+          </button>
+        </div>
       </div>
 
       {mobileMenuOpen ? (
         <nav
           id={mobileMenuId}
           aria-label="Mobile"
-          className="border-t border-slate-800 bg-[#090d14] px-5 py-4 md:hidden"
+          className="border-t border-[var(--surface-hairline)] bg-[var(--surface-slate)] px-5 py-4 md:hidden"
         >
           <ul className="flex flex-col gap-1">
             {NAV_ITEMS.map((item) => {
@@ -152,13 +142,13 @@ export function SiteHeader({
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex min-h-11 items-center justify-between border-l-2 px-3 py-2 text-sm font-medium transition-colors ${
                       active
-                        ? "border-cyan-400 bg-cyan-400/10 text-cyan-200"
-                        : "border-transparent text-slate-200 hover:border-slate-600 hover:bg-slate-900/70"
+                        ? "border-[var(--accent-ink)] bg-[var(--accent-soft)] text-[var(--accent-ink-strong)]"
+                        : "border-transparent text-[var(--ink-secondary)] hover:border-[var(--surface-hairline)] hover:bg-[var(--surface-panel)]"
                     }`}
                   >
                     <span>{item.label}</span>
                     {active ? (
-                      <span className="font-mono text-[10px] uppercase tracking-widest text-cyan-300">
+                      <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--accent-ink)]">
                         Active
                       </span>
                     ) : null}
@@ -166,18 +156,6 @@ export function SiteHeader({
                 </li>
               );
             })}
-            <li className="pt-2">
-              <a
-                href={linkedinUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex min-h-11 items-center justify-center gap-2 border border-cyan-400/60 bg-cyan-400/15 px-4 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-200"
-              >
-                Connect on LinkedIn
-                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-              </a>
-            </li>
           </ul>
         </nav>
       ) : null}

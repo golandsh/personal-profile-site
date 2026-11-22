@@ -52,31 +52,38 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  colorScheme: "dark",
-  themeColor: "#07090d",
+  colorScheme: "light dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f8fb" },
+    { media: "(prefers-color-scheme: dark)", color: "#07090d" },
+  ],
 };
 
 interface RootLayoutProps {
   readonly children: ReactNode;
 }
 
+const COLOR_SCHEME_INIT_SCRIPT =
+  'try{const s=localStorage.getItem("color-scheme");if(s==="light"||s==="dark"){const m=document.querySelector(\'meta[name="color-scheme"]\');if(m)m.content=s;}}catch{}';
+
 export default function RootLayout({ children }: RootLayoutProps): ReactElement {
   return (
     <html
       lang="en"
       className={`${spaceGrotesk.variable} ${plusJakartaSans.variable} ${jetBrainsMono.variable}`}
+      suppressHydrationWarning
     >
-      <body className="architectural-backdrop selection:bg-cyan-400/30 selection:text-white">
+      <head>
+        <meta name="color-scheme" content="light dark" />
+        <script id="color-scheme-init">{COLOR_SCHEME_INIT_SCRIPT}</script>
+      </head>
+      <body className="architectural-backdrop selection:bg-cyan-400/30">
         <a href="#main-content" className="skip-link visually-hidden">
           Skip to main content
         </a>
         <div className="scroll-progress-bar" aria-hidden="true" />
         <div className="flex min-h-dvh flex-col">
-          <SiteHeader
-            monogram={PROFILE.monogram}
-            name={PROFILE.name}
-            linkedinUrl={PROFILE.linkedinUrl}
-          />
+          <SiteHeader monogram={PROFILE.monogram} name={PROFILE.name} />
           <main id="main-content" tabIndex={-1} className="flex-1">
             {children}
           </main>

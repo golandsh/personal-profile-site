@@ -5,6 +5,7 @@ import type { ChatMessageInput } from "@/lib/digital-twin-schema";
 import { MissingEnvError, getN8nEnv } from "@/lib/env";
 
 export const N8N_TIMEOUT_MS = 35_000;
+export const N8N_HEALTH_TIMEOUT_MS = 3_500;
 export const N8N_DEFAULT_MODEL_LABEL = "ollama-n8n";
 
 export type N8nErrorCode =
@@ -67,6 +68,70 @@ export interface N8nReply {
 export interface RequestN8nOptions {
   readonly fetchImpl?: typeof fetch;
   readonly timeoutMs?: number;
+}
+
+export interface N8nHealthOptions {
+  readonly fetchImpl?: typeof fetch;
+  readonly timeoutMs?: number;
+}
+
+/**
+ * Probes whether the configured n8n webhook is reachable without triggering
+ * the AI workflow. A POST-only n8n webhook responds 404 JSON stating it is
+ * not registered for GET requests; ngrok-offline or down hosts return 502/503/504
+ * or HTML error pages.
+ */
+export async function checkN8nHealth(
+  options: N8nHealthOptions = {},
+): Promise<boolean> {
+  let env: { readonly webhookUrl: string; readonly webhookSecret: string | null };
+  try {
+    env = getN8nEnv();
+  } catch {
+    return false;
+  }
+
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const timeoutMs = options.timeoutMs ?? N8N_HEALTH_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timeoutHandle = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+
+  const headers: Record<string, string> = {
+    "ngrok-skip-browser-warning": "true",
+  };
+  if (env.webhookSecret) {
+    headers["X-Webhook-Secret"] = env.webhookSecret;
+  }
+
+  try {
+    const response = await fetchImpl(env.webhookUrl, {
+      method: "GET",
+      headers,
+      signal: controller.signal,
+      cache: "no-store",
+    });
+
+    if (
+      response.status === 200 ||
+      response.status === 401 ||
+      response.status === 403
+    ) {
+      return true;
+    }
+
+    if (response.status === 404) {
+      const bodyText = await response.text().catch(() => "");
+      return bodyText.includes("not registered for GET requests");
+    }
+
+    return false;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
 }
 
 export async function requestN8nDigitalTwinReply(

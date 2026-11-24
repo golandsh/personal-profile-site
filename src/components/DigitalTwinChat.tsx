@@ -18,7 +18,10 @@ import {
   useState,
 } from "react";
 import { DigitalTwinMessageText } from "@/components/DigitalTwinMessageText";
-import { OPEN_DIGITAL_TWIN_EVENT } from "@/components/OpenDigitalTwinButton";
+import {
+  OPEN_DIGITAL_TWIN_EVENT,
+  dispatchDigitalTwinAvailability,
+} from "@/components/OpenDigitalTwinButton";
 import {
   MAX_CONVERSATION_MESSAGES,
   MAX_MESSAGE_LENGTH,
@@ -46,10 +49,22 @@ function createMessageId(prefix: "user" | "assistant"): string {
   return `${prefix}-${messageCounter}`;
 }
 
+function isDigitalTwinHealthPayload(
+  value: unknown,
+): value is { readonly available: boolean } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "available" in value &&
+    typeof value.available === "boolean"
+  );
+}
+
 export function DigitalTwinChat({
   monogram,
   name,
-}: DigitalTwinChatProps): ReactElement {
+}: DigitalTwinChatProps): ReactElement | null {
+  const [isAvailable, setIsAvailable] = useState<boolean>(true);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [messages, setMessages] = useState<readonly ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState<string>("");
@@ -75,6 +90,45 @@ export function DigitalTwinChat({
 
   const openPanel = useCallback((): void => {
     setIsOpen(true);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const verifyAvailability = async (): Promise<void> => {
+      try {
+        const response = await fetch("/api/digital-twin/health", {
+          method: "GET",
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        if (controller.signal.aborted) {
+          return;
+        }
+        if (!response.ok) {
+          setIsAvailable(false);
+          setIsOpen(false);
+          dispatchDigitalTwinAvailability(false);
+          return;
+        }
+        const payload: unknown = await response.json().catch(() => null);
+        if (controller.signal.aborted) {
+          return;
+        }
+        if (isDigitalTwinHealthPayload(payload) && !payload.available) {
+          setIsAvailable(false);
+          setIsOpen(false);
+          dispatchDigitalTwinAvailability(false);
+        }
+      } catch {
+        // Ignore abort/network probe errors so the main site continues uninterrupted
+      }
+    };
+
+    void verifyAvailability();
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -190,6 +244,16 @@ export function DigitalTwinChat({
         }
 
         if (!response.ok) {
+          if (
+            response.status === 502 ||
+            response.status === 503 ||
+            response.status === 504
+          ) {
+            setIsAvailable(false);
+            setIsOpen(false);
+            dispatchDigitalTwinAvailability(false);
+            return;
+          }
           setErrorMessage(
             isDigitalTwinError(rawJson)
               ? rawJson.error
@@ -250,7 +314,6 @@ export function DigitalTwinChat({
     event: KeyboardEvent<HTMLTextAreaElement>,
   ): void => {
     if (event.key === "Enter" && !event.shiftKey) {
-      // IME-safe guard MUST run before preventDefault so Enter still commits IME candidates
       if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) {
         return;
       }
@@ -271,6 +334,10 @@ export function DigitalTwinChat({
 
   const remainingChars = MAX_MESSAGE_LENGTH - inputValue.length;
   const showCharCounter = inputValue.length >= MAX_MESSAGE_LENGTH - 180;
+
+  if (!isAvailable) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">

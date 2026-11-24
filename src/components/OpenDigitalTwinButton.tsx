@@ -1,13 +1,25 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import type { ReactElement } from "react";
+import { type ReactElement, useEffect, useState } from "react";
 
 export const OPEN_DIGITAL_TWIN_EVENT = "open-digital-twin";
+export const DIGITAL_TWIN_AVAILABILITY_EVENT = "digital-twin-availability";
 
 export function dispatchOpenDigitalTwin(): void {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(OPEN_DIGITAL_TWIN_EVENT));
+  }
+}
+
+export function dispatchDigitalTwinAvailability(available: boolean): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent<{ readonly available: boolean }>(
+        DIGITAL_TWIN_AVAILABILITY_EVENT,
+        { detail: { available } },
+      ),
+    );
   }
 }
 
@@ -17,7 +29,37 @@ export interface OpenDigitalTwinButtonProps {
 
 export function OpenDigitalTwinButton({
   label = "Ask My Digital Twin",
-}: OpenDigitalTwinButtonProps): ReactElement {
+}: OpenDigitalTwinButtonProps): ReactElement | null {
+  const [available, setAvailable] = useState<boolean>(true);
+
+  useEffect(() => {
+    const handleAvailability = (event: Event): void => {
+      if (event instanceof CustomEvent) {
+        const detail: unknown = event.detail;
+        if (
+          typeof detail === "object" &&
+          detail !== null &&
+          "available" in detail &&
+          typeof detail.available === "boolean"
+        ) {
+          setAvailable(detail.available);
+        }
+      }
+    };
+
+    window.addEventListener(DIGITAL_TWIN_AVAILABILITY_EVENT, handleAvailability);
+    return () => {
+      window.removeEventListener(
+        DIGITAL_TWIN_AVAILABILITY_EVENT,
+        handleAvailability,
+      );
+    };
+  }, []);
+
+  if (!available) {
+    return null;
+  }
+
   return (
     <button
       type="button"

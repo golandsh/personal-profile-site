@@ -13,11 +13,33 @@ import { DigitalTwinChat } from "@/components/DigitalTwinChat";
 import { OpenDigitalTwinButton } from "@/components/OpenDigitalTwinButton";
 import { trimConversationHistory } from "@/lib/digital-twin-types";
 
+function getChatPostCalls(spy: MockInstance<typeof fetch>): unknown[][] {
+  return spy.mock.calls.filter(
+    ([url]) => String(url) === "/api/digital-twin",
+  );
+}
+
 describe("DigitalTwinChat", () => {
   let fetchSpy: MockInstance<typeof fetch>;
 
   beforeEach(() => {
-    fetchSpy = vi.spyOn(globalThis, "fetch");
+    fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation((input: RequestInfo | URL) => {
+        if (String(input) === "/api/digital-twin/health") {
+          return Promise.resolve(
+            new Response(JSON.stringify({ available: true }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
+        return Promise.resolve(
+          new Response(JSON.stringify({ error: "Unmocked fetch" }), {
+            status: 500,
+          }),
+        );
+      });
   });
 
   afterEach(() => {
@@ -55,7 +77,6 @@ describe("DigitalTwinChat", () => {
     expect(dialog).toHaveAttribute("hidden");
     expect(launcher).toHaveFocus();
 
-    // Open via launcher and close via Close button
     await user.click(launcher);
     expect(dialog).toBeVisible();
     await user.click(
@@ -66,16 +87,23 @@ describe("DigitalTwinChat", () => {
   });
 
   it("blocks empty/whitespace submissions and sends formatted safe replies without HTML injection", async () => {
-    fetchSpy.mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          reply:
-            "Line one\nLine two with **WiseStamp**\n\n- Built **Recurly** billing\n- <script>alert(1)</script> safe text",
-          model: "google/gemma-4-26b-a4b-it:free",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
+    fetchSpy.mockImplementation((input: RequestInfo | URL) => {
+      if (String(input) === "/api/digital-twin/health") {
+        return Promise.resolve(
+          new Response(JSON.stringify({ available: true }), { status: 200 }),
+        );
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            reply:
+              "Line one\nLine two with **WiseStamp**\n\n- Built **Recurly** billing\n- <script>alert(1)</script> safe text",
+            model: "ollama-n8n",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    });
 
     const user = userEvent.setup();
     render(<DigitalTwinChat monogram="SG_" name="Shlomi Goland" />);
@@ -91,7 +119,7 @@ describe("DigitalTwinChat", () => {
     await user.type(textarea, "   ");
     expect(sendButton).toBeDisabled();
     await user.keyboard("{Enter}");
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(getChatPostCalls(fetchSpy)).toHaveLength(0);
 
     await user.click(
       screen.getByRole("button", {
@@ -99,10 +127,7 @@ describe("DigitalTwinChat", () => {
       }),
     );
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "/api/digital-twin",
-      expect.objectContaining({ method: "POST" }),
-    );
+    expect(getChatPostCalls(fetchSpy)).toHaveLength(1);
 
     expect(await screen.findByText("Recurly")).toBeInTheDocument();
     expect(screen.getByText(/Line one/)).toBeInTheDocument();
@@ -115,7 +140,12 @@ describe("DigitalTwinChat", () => {
   it("shows Thinking indicator, disables controls during in-flight request, and aborts on unmount or Reset", async () => {
     let capturedSignal: AbortSignal | undefined;
     fetchSpy.mockImplementation(
-      (_input: RequestInfo | URL, init?: RequestInit) => {
+      (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input) === "/api/digital-twin/health") {
+          return Promise.resolve(
+            new Response(JSON.stringify({ available: true }), { status: 200 }),
+          );
+        }
         capturedSignal = init?.signal ?? undefined;
         return new Promise<Response>(() => {
           // Intentionally pending to test in-flight state and abort cleanup
@@ -138,10 +168,9 @@ describe("DigitalTwinChat", () => {
     expect(screen.getByText("Thinking")).toBeInTheDocument();
     expect(textarea).toBeDisabled();
     expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(getChatPostCalls(fetchSpy)).toHaveLength(1);
     expect(capturedSignal?.aborted).toBe(false);
 
-    // Reset while loading aborts the active fetch and exits loading state
     await user.click(
       screen.getByRole("button", { name: "Reset conversation" }),
     );
@@ -149,7 +178,6 @@ describe("DigitalTwinChat", () => {
     expect(screen.queryByText("Thinking")).not.toBeInTheDocument();
     expect(textarea).not.toBeDisabled();
 
-    // Start another pending request and unmount to verify cleanup abort
     await user.type(textarea, "Another question");
     await user.click(screen.getByRole("button", { name: "Send message" }));
     expect(capturedSignal?.aborted).toBe(false);
@@ -158,15 +186,22 @@ describe("DigitalTwinChat", () => {
   });
 
   it("supports Enter submit, Shift+Enter newline, and blocks IME-composing Enter (including Safari keyCode 229)", async () => {
-    fetchSpy.mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          reply: "I migrated Pango microservices to AWS Lambda and SQS.",
-          model: "google/gemma-4-26b-a4b-it:free",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
+    fetchSpy.mockImplementation((input: RequestInfo | URL) => {
+      if (String(input) === "/api/digital-twin/health") {
+        return Promise.resolve(
+          new Response(JSON.stringify({ available: true }), { status: 200 }),
+        );
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            reply: "I migrated Pango microservices to AWS Lambda and SQS.",
+            model: "ollama-n8n",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    });
 
     const user = userEvent.setup();
     render(<DigitalTwinChat monogram="SG_" name="Shlomi Goland" />);
@@ -178,27 +213,23 @@ describe("DigitalTwinChat", () => {
 
     await user.type(textarea, "Tell me about AWS");
 
-    // IME composing (isComposing: true) must NOT submit or call preventDefault
     const imeEventNotCancelled = fireEvent.keyDown(textarea, {
       key: "Enter",
       isComposing: true,
     });
     expect(imeEventNotCancelled).toBe(true);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(getChatPostCalls(fetchSpy)).toHaveLength(0);
 
-    // Safari IME fallback (keyCode: 229) must NOT submit or call preventDefault
     const safariImeNotCancelled = fireEvent.keyDown(textarea, {
       key: "Enter",
       keyCode: 229,
     });
     expect(safariImeNotCancelled).toBe(true);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(getChatPostCalls(fetchSpy)).toHaveLength(0);
 
-    // Shift+Enter must NOT submit
     await user.keyboard("{Shift>}{Enter}{/Shift}");
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(getChatPostCalls(fetchSpy)).toHaveLength(0);
 
-    // Plain Enter submits
     await user.keyboard("{Enter}");
     expect(
       await screen.findByText(
@@ -207,30 +238,44 @@ describe("DigitalTwinChat", () => {
     ).toBeInTheDocument();
   });
 
-  it("handles HTTP errors, malformed 200 payloads, and network errors with rollback, input restore, and Retry recovery", async () => {
-    fetchSpy
-      .mockRejectedValueOnce(new TypeError("Network offline"))
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ unexpected: true }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({ error: "The AI model is currently busy." }),
-          { status: 429, headers: { "Content-Type": "application/json" } },
-        ),
-      )
-      .mockResolvedValueOnce(
+  it("handles HTTP 429, malformed 200 payloads, and network errors with rollback, input restore, and Retry recovery", async () => {
+    let postAttempt = 0;
+    fetchSpy.mockImplementation((input: RequestInfo | URL) => {
+      if (String(input) === "/api/digital-twin/health") {
+        return Promise.resolve(
+          new Response(JSON.stringify({ available: true }), { status: 200 }),
+        );
+      }
+      postAttempt += 1;
+      if (postAttempt === 1) {
+        return Promise.reject(new TypeError("Network offline"));
+      }
+      if (postAttempt === 2) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ unexpected: true }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+      if (postAttempt === 3) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({ error: "The AI model is currently busy." }),
+            { status: 429, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      }
+      return Promise.resolve(
         new Response(
           JSON.stringify({
             reply: "Recovered answer about Taldor.",
-            model: "google/gemma-4-26b-a4b-it:free",
+            model: "ollama-n8n",
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         ),
       );
+    });
 
     const user = userEvent.setup();
     render(<DigitalTwinChat monogram="SG_" name="Shlomi Goland" />);
@@ -242,30 +287,85 @@ describe("DigitalTwinChat", () => {
     await user.type(textarea, "What did you do at Taldor?");
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
-    // 1. Network error rolls back user bubble and restores textarea text
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Network error reaching the Digital Twin. Please try again.",
     );
     expect(textarea).toHaveValue("What did you do at Taldor?");
 
-    // 2. Malformed 200 JSON triggers unexpected response alert
     await user.click(screen.getByRole("button", { name: "Retry Question" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Received an unexpected response from the Digital Twin. Please try again.",
     );
 
-    // 3. HTTP 429 surfaces structured server error
     await user.click(screen.getByRole("button", { name: "Retry Question" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "The AI model is currently busy.",
     );
 
-    // 4. Retry succeeds cleanly
     await user.click(screen.getByRole("button", { name: "Retry Question" }));
     expect(
       await screen.findByText("Recovered answer about Taldor."),
     ).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("hides Digital Twin launcher and Hero button when health check reports unavailable", async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify({ available: false }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    render(
+      <>
+        <OpenDigitalTwinButton />
+        <DigitalTwinChat monogram="SG_" name="Shlomi Goland" />
+      </>,
+    );
+
+    await vi.waitFor(() => {
+      expect(
+        screen.queryByRole("button", { name: /Ask Digital Twin/i }),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.queryByRole("button", { name: "Ask My Digital Twin" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides Digital Twin gracefully if POST /api/digital-twin returns 502", async () => {
+    fetchSpy
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ available: true }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "Unavailable" }), { status: 502 }),
+      );
+
+    const user = userEvent.setup();
+    render(
+      <>
+        <OpenDigitalTwinButton />
+        <DigitalTwinChat monogram="SG_" name="Shlomi Goland" />
+      </>,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Ask Digital Twin/i }));
+    const textarea = screen.getByLabelText(
+      "Ask Shlomi Goland's Digital Twin a question",
+    );
+    await user.type(textarea, "Hello?");
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+
+    await vi.waitFor(() => {
+      expect(
+        screen.queryByRole("button", { name: /Ask Digital Twin/i }),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.queryByRole("button", { name: "Ask My Digital Twin" }),
+    ).not.toBeInTheDocument();
   });
 
   it("trims older conversation history when total characters exceed budget while keeping latest user prompt", () => {

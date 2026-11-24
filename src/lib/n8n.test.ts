@@ -3,6 +3,7 @@ import {
   N8N_DEFAULT_MODEL_LABEL,
   N8N_TIMEOUT_MS,
   N8nError,
+  checkN8nHealth,
   formatConversationPrompt,
   requestN8nDigitalTwinReply,
 } from "@/lib/n8n";
@@ -170,5 +171,34 @@ describe("n8n webhook client", () => {
         fetchImpl: abortFetch,
       }),
     ).rejects.toMatchObject({ code: "timeout" });
+  });
+
+  it("checkN8nHealth detects active POST-only n8n webhook vs offline ngrok/down host", async () => {
+    const activeN8nFetch = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: 404,
+          message:
+            "This webhook is not registered for GET requests. Did you mean to make a POST request?",
+        }),
+        { status: 404 },
+      ),
+    );
+    expect(await checkN8nHealth({ fetchImpl: activeN8nFetch })).toBe(true);
+
+    const ngrokOfflineFetch = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response("ERR_NGROK_3200 Endpoint offline", { status: 404 }));
+    expect(await checkN8nHealth({ fetchImpl: ngrokOfflineFetch })).toBe(false);
+
+    const badGatewayFetch = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response("Bad Gateway", { status: 502 }));
+    expect(await checkN8nHealth({ fetchImpl: badGatewayFetch })).toBe(false);
+
+    const downFetch = vi
+      .fn<typeof fetch>()
+      .mockRejectedValue(new TypeError("Failed to fetch"));
+    expect(await checkN8nHealth({ fetchImpl: downFetch })).toBe(false);
   });
 });

@@ -5,6 +5,7 @@ import {
   Space_Grotesk,
 } from "next/font/google";
 import type { ReactElement, ReactNode } from "react";
+import { DigitalTwinBoundary } from "@/components/DigitalTwinBoundary";
 import { DigitalTwinChat } from "@/components/DigitalTwinChat";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -89,7 +90,9 @@ export default function RootLayout({ children }: RootLayoutProps): ReactElement 
           </main>
           <SiteFooter />
         </div>
-        <DigitalTwinChat monogram={PROFILE.monogram} name={PROFILE.name} />
+        <DigitalTwinBoundary>
+          <DigitalTwinChat monogram={PROFILE.monogram} name={PROFILE.name} />
+        </DigitalTwinBoundary>
       </body>
     </html>
   );

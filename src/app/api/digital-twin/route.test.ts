@@ -10,10 +10,20 @@ import {
   MAX_MESSAGE_LENGTH,
   MAX_REQUEST_BODY_BYTES,
 } from "@/lib/digital-twin-schema";
+import type * as GeminiModule from "@/lib/gemini";
+import { GeminiError, requestGeminiDigitalTwinReply } from "@/lib/gemini";
 import type * as N8nModule from "@/lib/n8n";
 import { N8nError, requestN8nDigitalTwinReply } from "@/lib/n8n";
 import type * as OpenRouterModule from "@/lib/openrouter";
 import { OpenRouterError, requestDigitalTwinReply } from "@/lib/openrouter";
+
+vi.mock("@/lib/gemini", async (importOriginal) => {
+  const actual = await importOriginal<typeof GeminiModule>();
+  return {
+    ...actual,
+    requestGeminiDigitalTwinReply: vi.fn(),
+  };
+});
 
 vi.mock("@/lib/openrouter", async (importOriginal) => {
   const actual = await importOriginal<typeof OpenRouterModule>();
@@ -31,6 +41,7 @@ vi.mock("@/lib/n8n", async (importOriginal) => {
   };
 });
 
+const mockedRequestGemini = vi.mocked(requestGeminiDigitalTwinReply);
 const mockedRequestOpenRouter = vi.mocked(requestDigitalTwinReply);
 const mockedRequestN8n = vi.mocked(requestN8nDigitalTwinReply);
 
@@ -52,14 +63,17 @@ function createJsonRequest(
 describe("POST /api/digital-twin", () => {
   const originalProvider = process.env.LLM_PROVIDER;
   const originalN8nUrl = process.env.N8N_WEBHOOK_URL;
+  const originalChatKey = process.env.CHAT_MODEL_API_KEY;
 
   beforeEach(() => {
     digitalTwinRateLimiter.reset();
     digitalTwinGlobalLimiter.reset();
     digitalTwinConcurrencyLimiter.reset();
+    mockedRequestGemini.mockReset();
     mockedRequestOpenRouter.mockReset();
     mockedRequestN8n.mockReset();
     delete process.env.LLM_PROVIDER;
+    delete process.env.CHAT_MODEL_API_KEY;
     process.env.N8N_WEBHOOK_URL =
       "https://example.ngrok-free.dev/webhook/digital-twin";
   });
@@ -75,6 +89,75 @@ describe("POST /api/digital-twin", () => {
     } else {
       process.env.N8N_WEBHOOK_URL = originalN8nUrl;
     }
+    if (originalChatKey === undefined) {
+      delete process.env.CHAT_MODEL_API_KEY;
+    } else {
+      process.env.CHAT_MODEL_API_KEY = originalChatKey;
+    }
+  });
+
+  it("routes to Gemini directly when CHAT_MODEL_API_KEY is set", async () => {
+    process.env.CHAT_MODEL_API_KEY = "AIza-test-key";
+    mockedRequestGemini.mockResolvedValue({
+      reply: "Direct Gemini answer.",
+      model: "gemini-3.8-flash",
+    });
+
+    const response = await POST(
+      createJsonRequest(
+        JSON.stringify({
+          messages: [{ role: "user", content: "Tell me about WiseStamp" }],
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockedRequestGemini).toHaveBeenCalledTimes(1);
+    expect(mockedRequestN8n).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({
+      reply: "Direct Gemini answer.",
+      model: "gemini-3.8-flash",
+    });
+  });
+
+  it("maps GeminiError missing-api-key to 503", async () => {
+    process.env.LLM_PROVIDER = "gemini";
+    mockedRequestGemini.mockRejectedValueOnce(
+      new GeminiError("missing-api-key", "Not configured"),
+    );
+
+    const response = await POST(
+      createJsonRequest(
+        JSON.stringify({
+          messages: [{ role: "user", content: "Hi" }],
+        }),
+      ),
+    );
+    expect(response.status).toBe(503);
+  });
+
+  it("returns static humorous reply with 200 when GeminiError is credits-exhausted", async () => {
+    process.env.LLM_PROVIDER = "gemini";
+    mockedRequestGemini.mockRejectedValueOnce(
+      new GeminiError(
+        "credits-exhausted",
+        "Shlomi either forgot to top up the funds or he is just cheap 😄",
+      ),
+    );
+
+    const response = await POST(
+      createJsonRequest(
+        JSON.stringify({
+          messages: [{ role: "user", content: "Hi" }],
+        }),
+      ),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toEqual({
+      reply: "Shlomi either forgot to top up the funds or he is just cheap 😄",
+      model: "fallback",
+    });
   });
 
   it("routes to n8n webhook by default when N8N_WEBHOOK_URL is set and returns 200 with no-store", async () => {

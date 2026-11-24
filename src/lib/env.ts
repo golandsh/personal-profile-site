@@ -2,6 +2,8 @@ import "server-only";
 import { z } from "zod";
 
 const ApiKeySchema = z.string().trim().min(1);
+const ModelNameSchema = z.string().trim().min(1);
+
 const HttpUrlSchema = z
   .string()
   .trim()
@@ -23,6 +25,13 @@ const HttpsOrLocalUrlSchema = z
     { message: "Webhook URL must use https:// (or localhost in development)" },
   );
 
+export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
+
+export interface GeminiEnv {
+  readonly apiKey: string;
+  readonly model: string;
+}
+
 export interface OpenRouterEnv {
   readonly apiKey: string;
   readonly siteUrl: string;
@@ -33,7 +42,7 @@ export interface N8nEnv {
   readonly webhookSecret: string | null;
 }
 
-export type LlmProvider = "n8n" | "openrouter";
+export type LlmProvider = "gemini" | "n8n" | "openrouter";
 
 export class MissingEnvError extends Error {
   constructor(message: string) {
@@ -44,13 +53,37 @@ export class MissingEnvError extends Error {
 
 export function getActiveLlmProvider(): LlmProvider {
   const configured = process.env.LLM_PROVIDER?.trim().toLowerCase();
-  if (configured === "openrouter") {
-    return "openrouter";
+  if (configured === "gemini") {
+    return "gemini";
   }
   if (configured === "n8n") {
     return "n8n";
   }
-  return process.env.N8N_WEBHOOK_URL?.trim() ? "n8n" : "openrouter";
+  if (configured === "openrouter") {
+    return "openrouter";
+  }
+  if (process.env.CHAT_MODEL_API_KEY?.trim()) {
+    return "gemini";
+  }
+  if (process.env.N8N_WEBHOOK_URL?.trim()) {
+    return "n8n";
+  }
+  return "gemini";
+}
+
+export function getGeminiEnv(): GeminiEnv {
+  const apiKeyResult = ApiKeySchema.safeParse(process.env.CHAT_MODEL_API_KEY);
+  if (!apiKeyResult.success) {
+    throw new MissingEnvError("CHAT_MODEL_API_KEY is not configured");
+  }
+
+  const rawModel = process.env.CHAT_MODEL_NAME?.trim();
+  const modelResult = ModelNameSchema.safeParse(rawModel);
+
+  return {
+    apiKey: apiKeyResult.data,
+    model: modelResult.success ? modelResult.data : DEFAULT_GEMINI_MODEL,
+  };
 }
 
 export function getOpenRouterEnv(): OpenRouterEnv {

@@ -11,6 +11,11 @@ import {
   type DigitalTwinSuccess,
 } from "@/lib/digital-twin-schema";
 import { getActiveLlmProvider } from "@/lib/env";
+import {
+  GeminiError,
+  OUT_OF_CREDITS_STATIC_REPLY,
+  requestGeminiDigitalTwinReply,
+} from "@/lib/gemini";
 import { N8nError, requestN8nDigitalTwinReply } from "@/lib/n8n";
 import { OpenRouterError, requestDigitalTwinReply } from "@/lib/openrouter";
 import { extractClientKey } from "@/lib/rate-limit";
@@ -34,6 +39,42 @@ function jsonError(
       },
     },
   );
+}
+
+function mapGeminiError(
+  error: GeminiError,
+): NextResponse<DigitalTwinSuccess | DigitalTwinError> {
+  switch (error.code) {
+    case "missing-api-key":
+      return jsonError(
+        "Digital Twin is temporarily unavailable due to server configuration.",
+        503,
+      );
+    case "credits-exhausted":
+      return NextResponse.json(
+        {
+          reply: OUT_OF_CREDITS_STATIC_REPLY,
+          model: "fallback",
+        },
+        {
+          status: 200,
+          headers: {
+            "Cache-Control": "no-store",
+          },
+        },
+      );
+    case "rate-limited":
+      return jsonError(error.message, 429, { "Retry-After": "10" });
+    case "timeout":
+      return jsonError(error.message, 504);
+    case "invalid-response":
+    case "upstream-error":
+      return jsonError(error.message, 502);
+    default: {
+      const exhaustive: never = error.code;
+      return jsonError(`Unexpected error: ${String(exhaustive)}`, 502);
+    }
+  }
 }
 
 function mapOpenRouterError(
@@ -195,10 +236,22 @@ export async function POST(
 
   try {
     const provider = getActiveLlmProvider();
-    const result =
-      provider === "n8n"
-        ? await requestN8nDigitalTwinReply(validated.data.messages)
-        : await requestDigitalTwinReply(validated.data.messages);
+    let result: { readonly reply: string; readonly model: string };
+    switch (provider) {
+      case "gemini":
+        result = await requestGeminiDigitalTwinReply(validated.data.messages);
+        break;
+      case "n8n":
+        result = await requestN8nDigitalTwinReply(validated.data.messages);
+        break;
+      case "openrouter":
+        result = await requestDigitalTwinReply(validated.data.messages);
+        break;
+      default: {
+        const exhaustive: never = provider;
+        throw new Error(`Unhandled LLM provider: ${String(exhaustive)}`);
+      }
+    }
 
     return NextResponse.json(
       {
@@ -213,6 +266,9 @@ export async function POST(
       },
     );
   } catch (error: unknown) {
+    if (error instanceof GeminiError) {
+      return mapGeminiError(error);
+    }
     if (error instanceof N8nError) {
       return mapN8nError(error);
     }

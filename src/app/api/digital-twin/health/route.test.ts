@@ -17,10 +17,12 @@ describe("GET /api/digital-twin/health", () => {
   const originalProvider = process.env.LLM_PROVIDER;
   const originalN8nUrl = process.env.N8N_WEBHOOK_URL;
   const originalOpenRouterKey = process.env.OPENROUTER_API_KEY;
+  const originalChatModelKey = process.env.CHAT_MODEL_API_KEY;
 
   beforeEach(() => {
     mockedCheckN8nHealth.mockReset();
     delete process.env.LLM_PROVIDER;
+    delete process.env.CHAT_MODEL_API_KEY;
     process.env.N8N_WEBHOOK_URL =
       "https://example.ngrok-free.dev/webhook/digital-twin";
   });
@@ -41,6 +43,23 @@ describe("GET /api/digital-twin/health", () => {
     } else {
       process.env.OPENROUTER_API_KEY = originalOpenRouterKey;
     }
+    if (originalChatModelKey === undefined) {
+      delete process.env.CHAT_MODEL_API_KEY;
+    } else {
+      process.env.CHAT_MODEL_API_KEY = originalChatModelKey;
+    }
+  });
+
+  it("checks CHAT_MODEL_API_KEY when using direct Gemini provider", async () => {
+    process.env.LLM_PROVIDER = "gemini";
+    delete process.env.CHAT_MODEL_API_KEY;
+
+    const missingResponse = await GET();
+    expect(await missingResponse.json()).toEqual({ available: false });
+
+    process.env.CHAT_MODEL_API_KEY = "AIza-test-key";
+    const okResponse = await GET();
+    expect(await okResponse.json()).toEqual({ available: true });
   });
 
   it("returns available: true when n8n health check succeeds", async () => {

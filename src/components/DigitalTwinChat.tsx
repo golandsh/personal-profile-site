@@ -436,9 +436,6 @@ export function DigitalTwinChat({
               engineering career, Recurly payments, AWS serverless migrations,
               Road 6 North, scaling the Kyiv division, or AI workflows.
             </p>
-            <p className="mt-2.5 border-t border-[var(--surface-hairline)] pt-2 font-mono text-[11px] leading-relaxed text-[var(--ink-muted)]">
-              Powered by a local AI model — replies may take up to ~30 seconds.
-            </p>
           </div>
 
           {messages.length === 0 ? (
@@ -492,9 +489,6 @@ export function DigitalTwinChat({
               <div className="inline-flex items-center gap-3 border border-[var(--surface-hairline)] bg-[var(--surface-panel)] px-3.5 py-3">
                 <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent-ink)]">
                   Thinking
-                </span>
-                <span className="font-mono text-[10px] text-[var(--ink-muted)]">
-                  Local model (~up to 30s)
                 </span>
                 <span
                   className="inline-flex items-center gap-1"
